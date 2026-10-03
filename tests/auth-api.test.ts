@@ -69,6 +69,7 @@ describe('auth api', () => {
           password: 'AnotherPass123!',
           displayName: 'Second User',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -271,6 +272,7 @@ describe('auth api', () => {
           password: 'StrongPass123!',
           displayName: 'Protected User',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -383,6 +385,7 @@ describe('auth api', () => {
           password: 'StrongPass123!',
           displayName: 'Other Profile',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -406,6 +409,7 @@ describe('auth api', () => {
         body: JSON.stringify({
           displayName: 'Updated Student',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );

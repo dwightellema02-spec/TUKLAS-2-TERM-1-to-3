@@ -21,7 +21,11 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 120_000,
     globalSetup: ['tests/global-setup.ts'],
-    env: { DATABASE_URL: testDatabaseUrl, DB_TARGET: 'test' },
+    env: {
+      DATABASE_URL: testDatabaseUrl,
+      DB_TARGET: 'test',
+      TEACHER_INVITE_CODE: 'test-only-teacher-invite-code',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],

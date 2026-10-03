@@ -157,6 +157,7 @@ describe('lesson api', () => {
           password: 'StrongPass123!',
           displayName: 'Lesson Teacher',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -288,6 +289,7 @@ describe('lesson api', () => {
           password: 'StrongPass123!',
           displayName: 'Lesson Teacher',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -334,6 +336,7 @@ describe('lesson api', () => {
           password: 'StrongPass123!',
           displayName: 'Lesson Reader',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );
@@ -422,6 +425,7 @@ describe('lesson api', () => {
           password: 'StrongPass123!',
           displayName: 'Other Teacher',
           role: 'TEACHER',
+          inviteCode: process.env.TEACHER_INVITE_CODE,
         }),
       }),
     );

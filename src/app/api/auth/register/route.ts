@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../../../../server/db';
 import {
@@ -14,6 +15,12 @@ import {
   RateLimitError,
 } from '../../../../server/rate-limit';
 import { AuthAuditLogger } from '../../../../lib/auth/audit';
+
+function safeEqual(a: string, b: string) {
+  const left = createHash('sha256').update(a).digest();
+  const right = createHash('sha256').update(b).digest();
+  return timingSafeEqual(left, right);
+}
 
 const registerSchema = z.object({
   email: z.string().trim().email('Please enter a valid email address.'),
@@ -58,10 +65,12 @@ export async function POST(request: Request) {
     const normalizedEmail = email.toLowerCase();
     enforceRateLimit(`register:${getRequestAddress(request)}`, 20);
 
-    // School security: Teacher registration requires a valid invitation code in production/public mode
-    if (role === 'TEACHER' && process.env.NODE_ENV !== 'test') {
-      const validCode = process.env.TEACHER_INVITE_CODE || 'TUKLAS-TEACHER-DEMO';
-      if (!inviteCode || inviteCode !== validCode) {
+    // School security: teacher self-registration requires a configured invitation code.
+    // There is no default code and no per-environment bypass: if TEACHER_INVITE_CODE is
+    // unset, teacher registration is disabled.
+    if (role === 'TEACHER') {
+      const validCode = process.env.TEACHER_INVITE_CODE?.trim();
+      if (!validCode || !inviteCode || !safeEqual(inviteCode, validCode)) {
         AuthAuditLogger.log({
           event: 'PRIVILEGE_ESCALATION_BLOCKED',
           email: normalizedEmail,

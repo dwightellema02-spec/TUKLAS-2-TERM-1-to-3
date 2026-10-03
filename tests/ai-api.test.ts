@@ -72,6 +72,7 @@ async function registeredUser(role: 'STUDENT' | 'TEACHER' = 'STUDENT') {
         password: 'StrongPass123!',
         displayName: 'AI Test User',
         role,
+        inviteCode: process.env.TEACHER_INVITE_CODE,
       }),
     }),
   );

@@ -145,6 +145,7 @@ describe('Phase 2 — Real Backend & Database Foundation', () => {
             password: 'StrongPass123!',
             displayName: 'Exam Proctor',
             role: 'TEACHER',
+            inviteCode: process.env.TEACHER_INVITE_CODE,
           }),
         }),
       );
@@ -250,6 +251,7 @@ describe('Phase 2 — Real Backend & Database Foundation', () => {
             password: 'StrongPass123!',
             displayName: 'Teacher User',
             role: 'TEACHER',
+            inviteCode: process.env.TEACHER_INVITE_CODE,
           }),
         }),
       );
