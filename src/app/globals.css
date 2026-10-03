@@ -46,7 +46,7 @@ body {
 }
 
 .brand span {
-  color: #c87832;
+  color: #8a4600;
   font-size: 0.8em;
   margin-left: 4px;
 }
@@ -413,7 +413,7 @@ select:focus {
 
 .lesson-card .lesson-subject {
   margin: 0;
-  color: #c87832;
+  color: #8a4600;
   font-weight: 700;
 }
 
@@ -462,5 +462,239 @@ select:focus {
   .profile-panel form {
     grid-column: 1;
     grid-row: auto;
+  }
+}
+
+/* ---------- Student practice, mistakes and dashboard (Phase 7) ---------- */
+
+.practice-page {
+  min-height: 100vh;
+  padding: 24px max(20px, calc((100vw - 760px) / 2));
+}
+
+.practice-card {
+  padding: clamp(20px, 5vw, 40px);
+  border: 1px solid #d4ded4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  font: 1rem/1.6 Arial, sans-serif;
+}
+
+.practice-card h1 {
+  margin: 4px 0 8px;
+  color: #0e3b34;
+  font: 700 clamp(1.5rem, 4vw, 2.1rem)/1.25 Georgia, 'Times New Roman', serif;
+}
+
+.practice-progress {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #53635a;
+  font-size: 0.95rem;
+}
+
+.progress-track {
+  height: 8px;
+  margin: 8px 0 20px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e1e8e0;
+}
+
+.progress-track > span {
+  display: block;
+  height: 100%;
+  background: #2f7a5d;
+  transition: width 0.2s ease;
+}
+
+.practice-question {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.option-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+  list-style: none;
+}
+
+.option-list legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 700;
+}
+
+.option-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 2px solid #d4ded4;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.option-choice:focus-within {
+  outline: 3px solid #2f7a5d;
+  outline-offset: 2px;
+}
+
+.option-choice.selected {
+  border-color: #2f7a5d;
+}
+
+.option-choice.is-correct {
+  border-color: #1d6b43;
+  background: #e8f5ec;
+}
+
+.option-choice.is-wrong {
+  border-color: #9b2c2c;
+  background: #fbeaea;
+}
+
+.option-choice input {
+  width: 20px;
+  height: 20px;
+}
+
+.option-tag {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.feedback-panel {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-left: 5px solid #53635a;
+  border-radius: 6px;
+  background: #f3f6f2;
+}
+
+.feedback-panel.correct {
+  border-left-color: #1d6b43;
+  background: #e8f5ec;
+}
+
+.feedback-panel.incorrect {
+  border-left-color: #9b2c2c;
+  background: #fbeaea;
+}
+
+.feedback-panel:focus {
+  outline: 3px solid #2f7a5d;
+  outline-offset: 2px;
+}
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.action-row .submit-button,
+.action-row .quiet-button,
+.link-button {
+  min-height: 44px;
+}
+
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: #0e3b34;
+  background: #e9eee8;
+  font: 700 1rem Arial, sans-serif;
+  text-decoration: none;
+}
+
+.score-banner {
+  margin: 12px 0 20px;
+  font: 700 2.4rem/1.1 Georgia, 'Times New Roman', serif;
+  color: #0e3b34;
+}
+
+.review-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  padding: 14px 16px;
+  border: 1px solid #d4ded4;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.review-item.missed {
+  border-left: 5px solid #9b2c2c;
+}
+
+.review-item.got-it {
+  border-left: 5px solid #1d6b43;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.stat-card {
+  padding: 16px;
+  border: 1px solid #d4ded4;
+  border-radius: 10px;
+  background: #fff;
+  font: 1rem/1.4 Arial, sans-serif;
+}
+
+.stat-card strong {
+  display: block;
+  color: #0e3b34;
+  font: 700 1.9rem/1.2 Georgia, 'Times New Roman', serif;
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #e9eee8;
+  color: #0e3b34;
+  font: 700 0.8rem Arial, sans-serif;
+}
+
+.status-chip.completed {
+  background: #e8f5ec;
+  color: #1d6b43;
+}
+
+.status-chip.in-progress {
+  background: #fff4dc;
+  color: #7a5200;
+}
+
+@media (max-width: 430px) {
+  .practice-page {
+    padding: 12px;
+  }
+
+  .action-row > * {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 }

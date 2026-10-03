@@ -21,6 +21,8 @@ export default defineConfig({
     testTimeout: 60_000,
     hookTimeout: 120_000,
     globalSetup: ['tests/global-setup.ts'],
+    // Browser tests live in e2e/ and run with Playwright (npm run test:e2e).
+    exclude: ['e2e/**', 'node_modules/**'],
     env: {
       DATABASE_URL: testDatabaseUrl,
       DB_TARGET: 'test',

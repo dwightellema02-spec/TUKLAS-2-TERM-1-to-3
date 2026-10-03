@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
         }}
       >
         <div>
-          <span className="eyebrow" style={{ color: '#c87832', textTransform: 'uppercase' }}>
+          <span className="eyebrow" style={{ color: '#8a4600', textTransform: 'uppercase' }}>
             System Administration
           </span>
           <h1 style={{ margin: '8px 0', fontSize: '2.4rem', color: '#0e3b34' }}>
@@ -95,7 +95,7 @@ export default async function AdminDashboardPage() {
               Inspect Curriculum Tree
             </Link>
           </div>
-          <span style={{ fontSize: '0.85rem', color: '#c87832', fontWeight: 600, display: 'block', marginTop: '12px' }}>
+          <span style={{ fontSize: '0.85rem', color: '#8a4600', fontWeight: 600, display: 'block', marginTop: '12px' }}>
             Curriculum Authoritative Source
           </span>
         </div>
@@ -112,7 +112,7 @@ export default async function AdminDashboardPage() {
           <p style={{ color: '#556', fontSize: '0.95rem' }}>
             Manage teacher and student accounts, deactivate accounts, and oversee school rosters.
           </p>
-          <span style={{ fontSize: '0.85rem', color: '#c87832', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.85rem', color: '#8a4600', fontWeight: 600 }}>
             Root System Permissions Active
           </span>
         </div>

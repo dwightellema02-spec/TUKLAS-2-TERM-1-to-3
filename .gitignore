@@ -12,3 +12,7 @@ pg_hba.conf.safe
 
 .vercel
 .env*
+
+# Playwright
+test-results/
+playwright-report/

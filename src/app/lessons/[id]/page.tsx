@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EducationalContent, YouTubeVideoPlayer } from '../../../components/educational-content';
 import { renderWithMath } from '../../../components/math-formula';
@@ -58,6 +58,8 @@ type LessonDetail = {
 
 export default function LessonPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [practiceBusy, setPracticeBusy] = useState(false);
   const [lesson, setLesson] = useState<LessonDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -109,6 +111,25 @@ export default function LessonPage() {
       setProgressMessage(status === 'COMPLETED' ? 'Lesson marked complete.' : 'Progress saved.');
     } catch (cause: unknown) {
       setProgressMessage(cause instanceof Error ? cause.message : 'Progress could not be saved.');
+    }
+  }
+
+  // Practice questions come from this lesson's own question bank (no AI needed).
+  async function startPractice() {
+    setPracticeBusy(true);
+    setProgressMessage('');
+    try {
+      const response = await fetch('/api/practice/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: 'LESSON_BANK', lessonId: id, total: 10 }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Could not start practice.');
+      router.push(`/student/practice/${payload.data.session.id}`);
+    } catch (cause: unknown) {
+      setProgressMessage(cause instanceof Error ? cause.message : 'Could not start practice.');
+      setPracticeBusy(false);
     }
   }
 
@@ -303,6 +324,10 @@ export default function LessonPage() {
         {student && (
           <section className="progress-actions">
             <h2>Your progress</h2>
+            <button className="submit-button" onClick={startPractice} disabled={practiceBusy}>
+              {practiceBusy ? 'Starting practice...' : 'Practice this lesson'}
+            </button>
+            <Link className="quiet-button" href="/student/mistakes">My mistakes</Link>
             <button className="quiet-button" onClick={() => updateProgress('IN_PROGRESS')}>Save as in progress</button>
             <button className="submit-button" onClick={() => updateProgress('COMPLETED')}>Mark lesson complete</button>
             {progressMessage && <p role="status">{progressMessage}</p>}
