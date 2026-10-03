@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tuklas — Learn smarter. Understand deeper. Master more.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#182521;
+  --ink-soft:#4B5750;
+  --canvas:#F2F4EE;
+  --panel:#FFFFFF;
+  --deep:#0E3B34;
+  --deep-2:#12483F;
+  --accent:#E8A33D;
+  --accent-ink:#5C3B0A;
+  --leaf:#2F7A5D;
+  --leaf-soft:#E4F0E8;
+  --brick:#C1542E;
+  --brick-soft:#F7E4DD;
+  --line:#DCE1D7;
+  --line-strong:#B9C2B4;
+  --radius-s:8px;
+  --radius-m:14px;
+  --radius-l:22px;
+  --shadow:0 1px 2px rgba(14,59,52,0.06), 0 6px 20px rgba(14,59,52,0.06);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'IBM Plex Sans', sans-serif;
+  background:var(--canvas);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.headline{font-family:'Sora', sans-serif; font-weight:700; letter-spacing:-0.01em; margin:0;}
+p{margin:0;}
+button{font-family:inherit; cursor:pointer;}
+a{color:inherit; text-decoration:none;}
+::selection{background:var(--accent); color:var(--accent-ink);}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:11px 20px; border-radius:999px; border:1px solid transparent;
+  font-size:14.5px; font-weight:600; transition:transform .12s ease, background .15s ease;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--deep); color:#fff;}
+.btn-primary:hover{background:var(--deep-2);}
+.btn-accent{background:var(--accent); color:var(--accent-ink);}
+.btn-accent:hover{filter:brightness(1.05);}
+.btn-ghost{background:transparent; color:var(--deep); border-color:var(--line-strong);}
+.btn-ghost:hover{background:#fff; border-color:var(--deep);}
+.btn-sm{padding:7px 14px; font-size:13px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+
+/* ---------- Landing ---------- */
+.landing{min-height:100vh; background:var(--canvas);}
+.landing-nav{display:flex; align-items:center; justify-content:space-between; padding:22px 6vw; max-width:1280px; margin:0 auto;}
+.brand{display:flex; align-items:center; gap:10px; font-family:'Sora'; font-weight:800; font-size:20px; color:var(--deep);}
+.brand .mark{width:30px; height:30px; border-radius:8px; background:var(--deep); position:relative; display:inline-block;}
+.brand .mark::after{content:''; position:absolute; width:9px; height:9px; border-radius:50%; background:var(--accent); top:7px; left:7px;}
+.landing-nav-links{display:flex; gap:28px; font-size:14.5px; color:var(--ink-soft); font-weight:500;}
+.landing-nav-links a:hover{color:var(--deep);}
+
+.hero{max-width:1280px; margin:0 auto; padding:40px 6vw 20px; display:grid; grid-template-columns:1.05fr 0.95fr; gap:56px; align-items:center;}
+@media(max-width:920px){.hero{grid-template-columns:1fr;}}
+.hero h1{font-size:clamp(38px,5vw,60px); line-height:1.03; color:var(--deep);}
+.hero .sub{margin-top:18px; font-size:17px; line-height:1.6; color:var(--ink-soft); max-width:52ch;}
+.hero-cta{margin-top:30px; display:flex; gap:12px; flex-wrap:wrap;}
+
+.trail-wrap{background:var(--deep); border-radius:var(--radius-l); padding:32px 26px; position:relative; overflow:hidden;}
+.trail-wrap::before{content:''; position:absolute; inset:0; background:radial-gradient(circle at 85% 8%, rgba(232,163,61,0.18), transparent 45%);}
+.trail-title{color:#E9EFE9; font-size:12.5px; text-transform:uppercase; letter-spacing:.14em; font-weight:600; opacity:.6; margin-bottom:18px;}
+.trail{display:flex; flex-direction:column; gap:0; position:relative;}
+.trail-step{display:flex; align-items:center; gap:14px; padding:9px 0; position:relative;}
+.trail-step:not(:last-child)::after{content:''; position:absolute; left:15px; top:36px; width:1.5px; height:22px; background:rgba(255,255,255,0.22);}
+.trail-dot{width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.28); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0;}
+.trail-step.active .trail-dot{background:var(--accent); border-color:var(--accent); color:var(--accent-ink);}
+.trail-label{color:#fff; font-weight:600; font-size:15px;}
+.trail-desc{color:rgba(255,255,255,0.5); font-size:12.5px; margin-top:1px;}
+
+.section{max-width:1280px; margin:0 auto; padding:74px 6vw;}
+.section-head{max-width:60ch; margin-bottom:38px;}
+.section-head .eyebrow{color:var(--leaf); font-weight:600; font-size:13.5px; margin-bottom:8px;}
+.section-head h2{font-size:32px; color:var(--deep);}
+.section-head p{margin-top:12px; color:var(--ink-soft); font-size:15.5px; line-height:1.6;}
+
+.loop-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
+@media(max-width:900px){.loop-grid{grid-template-columns:repeat(2,1fr);}}
+.loop-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-m); padding:20px;}
+.loop-card h4{font-size:15.5px; color:var(--deep); margin-bottom:6px;}
+.loop-card p{font-size:13.5px; color:var(--ink-soft); line-height:1.5;}
+
+.audience-grid{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
+@media(max-width:800px){.audience-grid{grid-template-columns:1fr;}}
+.audience-card{border-radius:var(--radius-l); padding:30px; }
+.audience-card.student{background:var(--leaf-soft);}
+.audience-card.teacher{background:#EFE8DA;}
+.audience-card h3{font-size:22px; color:var(--deep); margin-bottom:10px;}
+.audience-card ul{margin:16px 0 22px; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px;}
+.audience-card li{font-size:14.5px; color:var(--ink-soft); padding-left:18px; position:relative;}
+.audience-card li::before{content:'—'; position:absolute; left:0; color:var(--ink-soft);}
+
+.faq{border-top:1px solid var(--line);}
+.faq-item{border-bottom:1px solid var(--line); padding:18px 0;}
+.faq-item h4{font-size:15.5px; color:var(--deep); margin-bottom:6px;}
+.faq-item p{font-size:14px; color:var(--ink-soft); line-height:1.55;}
+
+.footer{background:var(--deep); color:rgba(255,255,255,0.65); padding:36px 6vw; font-size:13.5px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+
+/* ---------- App shell ---------- */
+.app-shell{display:flex; min-height:100vh;}
+.sidebar{width:224px; background:var(--deep); color:#fff; flex-shrink:0; display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh;}
+.sidebar .brand{color:#fff; padding:6px 8px 22px;}
+.side-link{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; color:rgba(255,255,255,0.72); font-size:14.5px; font-weight:500; margin-bottom:2px;}
+.side-link:hover{background:rgba(255,255,255,0.06); color:#fff;}
+.side-link.active{background:rgba(232,163,61,0.16); color:var(--accent);}
+.side-link .ic{width:18px; text-align:center; font-size:15px;}
+.side-sep{height:1px; background:rgba(255,255,255,0.1); margin:14px 4px;}
+.side-foot{margin-top:auto; padding:12px 8px; font-size:12.5px; color:rgba(255,255,255,0.4);}
+.role-switch{margin-top:8px; display:flex; gap:6px; background:rgba(255,255,255,0.06); border-radius:999px; padding:3px;}
+.role-switch button{flex:1; border:none; background:transparent; color:rgba(255,255,255,0.55); font-size:12px; font-weight:600; padding:6px 4px; border-radius:999px;}
+.role-switch button.on{background:#fff; color:var(--deep);}
+
+.main{flex:1; min-width:0; padding:26px 34px 60px;}
+@media(max-width:720px){
+  .app-shell{display:block;}
+  .sidebar{width:100%; height:auto; min-height:0; position:relative; overflow-x:auto; padding:12px 10px; white-space:nowrap;}
+  .sidebar .brand{display:inline-block; padding:6px 8px 12px; margin-right:8px;}
+  .side-link{display:inline-flex; margin:0 2px; padding:9px 10px;}
+  .side-sep,.side-foot{display:none;}
+  .main{padding:20px 16px 48px;}
+  .topbar{align-items:stretch; flex-direction:column; gap:10px;}
+  .searchbar{max-width:none;}
+}
+.topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; gap:16px;}
+.searchbar{flex:1; max-width:480px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:10px 16px;}
+.searchbar input{border:none; outline:none; flex:1; font-size:14px; background:transparent;}
+.pill{display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:7px 13px; font-size:13px; font-weight:600; color:var(--deep);}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-m); padding:20px;}
+.grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:20px;}
+@media(max-width:980px){.grid-2{grid-template-columns:1fr;}}
+.grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px;}
+@media(max-width:900px){.grid-3{grid-template-columns:1fr;}}
+
+.hi{font-size:26px; margin-bottom:2px;}
+.muted{color:var(--ink-soft);}
+.small{font-size:13px;}
+
+.bigsearch{background:#fff; border:1px solid var(--line); border-radius:var(--radius-l); padding:22px 24px; display:flex; align-items:center; gap:14px; margin:18px 0 22px;}
+.bigsearch input{flex:1; border:none; outline:none; font-size:17px; font-family:'Sora'; font-weight:500;}
+.quickrow{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:30px;}
+.quickbtn{display:flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:13px 16px; font-weight:600; font-size:14px; color:var(--deep);}
+.quickbtn:hover{border-color:var(--deep);}
+.quickbtn .ic{font-size:16px;}
+
+.section-title{display:flex; align-items:center; justify-content:space-between; margin:30px 0 14px;}
+.section-title h3{font-size:17px;}
+.link-more{font-size:13px; font-weight:600; color:var(--leaf);}
+
+.lesson-row{display:flex; align-items:center; gap:16px; background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:16px 18px; margin-bottom:10px;}
+.lesson-row .swatch{width:44px; height:44px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff;}
+.lesson-row .meta{flex:1; min-width:0;}
+.lesson-row .meta .t{font-weight:600; font-size:14.5px;}
+.lesson-row .meta .s{font-size:12.5px; color:var(--ink-soft); margin-top:2px;}
+.progress-track{height:6px; background:var(--line); border-radius:999px; margin-top:8px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--leaf); border-radius:999px;}
+
+.stat-row{display:flex; align-items:baseline; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line);}
+.stat-row:last-child{border-bottom:none;}
+.stat-row .n{font-family:'Sora'; font-weight:700; font-size:15px;}
+
+.trailbar{display:flex; gap:3px; align-items:center;}
+.trailbar .seg{height:8px; flex:1; border-radius:3px; background:var(--line);}
+.trailbar .seg.fill{background:var(--leaf);}
+
+/* mastery ring */
+.ring{width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Sora'; font-weight:700; font-size:14px; flex-shrink:0;}
+
+/* Discover */
+.tag-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px;}
+.tag{padding:7px 14px; border-radius:999px; border:1px solid var(--line-strong); font-size:13px; font-weight:600; color:var(--ink-soft); background:#fff;}
+.tag.on{background:var(--deep); color:#fff; border-color:var(--deep);}
+.result-group h4{font-size:13px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-soft); margin:26px 0 10px;}
+
+/* Learn hub */
+.method-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:16px;}
+@media(max-width:900px){.method-grid{grid-template-columns:1fr 1fr;}}
+.method-card{background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:20px; display:flex; flex-direction:column; gap:8px; min-height:150px;}
+.method-card .ic{width:38px; height:38px; border-radius:10px; background:var(--leaf-soft); color:var(--leaf); display:flex; align-items:center; justify-content:center; font-size:18px;}
+.method-card h4{font-size:15px;}
+.method-card p{font-size:12.5px; color:var(--ink-soft); line-height:1.5; flex:1;}
+.method-card:hover{border-color:var(--deep);}
+
+/* Video to lesson */
+.vurl-box{background:#fff; border:1px solid var(--line); border-radius:var(--radius-l); padding:26px;}
+textarea, input[type=text], select{font-family:inherit; font-size:14px; border:1px solid var(--line-strong); border-radius:10px; padding:11px 13px; width:100%; outline:none; background:#fff;}
+textarea:focus, input[type=text]:focus{border-color:var(--deep);}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:6px;}
+.demo-row{display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;}
+.notice{background:var(--accent); background:#FBF1DE; border:1px solid #ECD6A6; color:#6B4A0B; border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.5; margin-top:12px;}
+.spinner{width:16px; height:16px; border:2px solid rgba(0,0,0,0.15); border-top-color:var(--deep); border-radius:50%; animation:spin .7s linear infinite; display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-line{display:flex; align-items:center; gap:10px; color:var(--ink-soft); font-size:14px; padding:18px 0;}
+
+/* Lesson viewer */
+.lesson-shell{display:grid; grid-template-columns:1fr 300px; gap:22px; align-items:flex-start;}
+@media(max-width:1000px){.lesson-shell{grid-template-columns:1fr;}}
+.lesson-head{background:#fff; border:1px solid var(--line); border-radius:var(--radius-l); padding:24px 26px; margin-bottom:18px;}
+.badge-row{display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;}
+.badge{font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:999px;}
+.badge.subject{background:var(--leaf-soft); color:var(--leaf);}
+.badge.grade{background:#EFE8DA; color:#6B4A0B;}
+.badge.time{background:#EDEDF2; color:#4C4C63;}
+.lesson-block{background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:22px 24px; margin-bottom:14px;}
+.lesson-block h4{font-size:12.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--leaf); margin-bottom:10px;}
+.lesson-block .body{font-size:15px; line-height:1.7; color:var(--ink);}
+.src-tag{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:5px; margin-bottom:8px; letter-spacing:.03em;}
+.src-tag.source{background:#DCEFE6; color:var(--leaf);}
+.src-tag.ai{background:#FDE9D8; color:#8A4A0F;}
+.vocab-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+@media(max-width:700px){.vocab-grid{grid-template-columns:1fr;}}
+.vocab-item{background:var(--canvas); border-radius:10px; padding:12px 14px;}
+.vocab-item .w{font-weight:700; font-size:14px; color:var(--deep);}
+.vocab-item .d{font-size:13px; color:var(--ink-soft); margin-top:3px;}
+.check-q{background:var(--canvas); border-radius:12px; padding:16px 18px; margin-top:6px;}
+.check-opts{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
+.opt-btn{text-align:left; background:#fff; border:1.5px solid var(--line-strong); border-radius:10px; padding:11px 14px; font-size:14px;}
+.opt-btn:hover{border-color:var(--deep);}
+.opt-btn.correct{border-color:var(--leaf); background:var(--leaf-soft);}
+.opt-btn.wrong{border-color:var(--brick); background:var(--brick-soft);}
+.feedback{margin-top:10px; font-size:13.5px; padding:10px 12px; border-radius:8px;}
+.feedback.good{background:var(--leaf-soft); color:#1D5A41;}
+.feedback.bad{background:var(--brick-soft); color:#8A3016;}
+
+.side-panel{position:sticky; top:20px; display:flex; flex-direction:column; gap:14px;}
+.tutor-card{background:var(--deep); border-radius:var(--radius-l); padding:20px; color:#fff;}
+.tutor-card h4{font-size:14.5px; margin-bottom:6px;}
+.tutor-card p{font-size:12.5px; color:rgba(255,255,255,0.65); line-height:1.5; margin-bottom:14px;}
+.chip-q{display:block; width:100%; text-align:left; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:#fff; border-radius:9px; padding:9px 11px; font-size:12.5px; margin-bottom:7px;}
+.chip-q:hover{background:rgba(255,255,255,0.15);}
+
+/* Chat drawer */
+.chat-drawer{position:fixed; right:24px; bottom:24px; width:380px; max-height:560px; background:#fff; border-radius:var(--radius-l); box-shadow:0 12px 40px rgba(0,0,0,0.22); display:flex; flex-direction:column; z-index:60; border:1px solid var(--line); overflow:hidden;}
+.chat-head{background:var(--deep); color:#fff; padding:14px 18px; display:flex; align-items:center; justify-content:space-between;}
+.chat-head .t{font-family:'Sora'; font-weight:700; font-size:14.5px;}
+.chat-head .close{cursor:pointer; opacity:.7; font-size:18px;}
+.chat-body{flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; max-height:380px;}
+.msg{max-width:85%; padding:10px 13px; border-radius:14px; font-size:13.5px; line-height:1.5;}
+.msg.user{align-self:flex-end; background:var(--deep); color:#fff; border-bottom-right-radius:4px;}
+.msg.bot{align-self:flex-start; background:var(--canvas); color:var(--ink); border-bottom-left-radius:4px;}
+.chat-suggest{display:flex; gap:6px; flex-wrap:wrap; padding:0 16px 10px;}
+.sugg-btn{font-size:11.5px; background:var(--canvas); border:1px solid var(--line); border-radius:999px; padding:6px 11px; font-weight:600; color:var(--ink-soft);}
+.chat-input{display:flex; gap:8px; padding:12px; border-top:1px solid var(--line);}
+.chat-input input{flex:1; border-radius:999px;}
+.fab-tutor{position:fixed; right:24px; bottom:24px; background:var(--accent); color:var(--accent-ink); border-radius:999px; padding:14px 22px; font-weight:700; box-shadow:0 8px 26px rgba(232,163,61,0.45); z-index:59; display:flex; align-items:center; gap:8px;}
+
+/* Practice / Quiz */
+.config-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:20px 0;}
+@media(max-width:900px){.config-grid{grid-template-columns:1fr 1fr;}}
+.opt-chip-row{display:flex; gap:8px; flex-wrap:wrap;}
+.opt-chip{padding:8px 14px; border-radius:10px; border:1.5px solid var(--line-strong); font-size:13.5px; font-weight:600; background:#fff;}
+.opt-chip.on{border-color:var(--deep); background:var(--deep); color:#fff;}
+
+.qcard{background:#fff; border:1px solid var(--line); border-radius:var(--radius-l); padding:28px; max-width:720px; margin:0 auto;}
+.qmeta{display:flex; gap:8px; margin-bottom:16px;}
+.qprompt{font-size:18px; font-family:'Sora'; font-weight:600; line-height:1.5; margin-bottom:20px;}
+.answer-box{width:100%; min-height:80px;}
+
+.diag-card{border-left:4px solid var(--brick); background:var(--brick-soft); border-radius:0 12px 12px 0; padding:16px 18px; margin-top:16px;}
+.diag-card h5{font-size:13px; color:#8A3016; margin-bottom:6px;}
+.diag-card p{font-size:13.5px; color:#5c2410; line-height:1.55;}
+.diag-card.good{border-left-color:var(--leaf); background:var(--leaf-soft);}
+.diag-card.good h5{color:#1D5A41;}
+.diag-card.good p{color:#1D5A41;}
+
+/* Mastery / Progress */
+.mastery-topic{background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:18px 20px; margin-bottom:12px;}
+.mt-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.mt-head .name{font-weight:700; font-size:15px;}
+.level-tag{font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px;}
+.sub-metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px;}
+.sub-metric{font-size:11.5px; color:var(--ink-soft);}
+.sub-metric .v{font-family:'Sora'; font-weight:700; font-size:15px; color:var(--ink); display:block; margin-top:2px;}
+
+/* Teacher */
+.kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px;}
+@media(max-width:900px){.kpi-row{grid-template-columns:1fr 1fr;}}
+.kpi{background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:18px 20px;}
+.kpi .lab{font-size:12.5px; color:var(--ink-soft); font-weight:600;}
+.kpi .val{font-family:'Sora'; font-weight:800; font-size:28px; color:var(--deep); margin-top:4px;}
+.kpi .delta{font-size:12px; margin-top:4px;}
+.kpi .delta.up{color:var(--leaf);}
+.kpi .delta.down{color:var(--brick);}
+.bar-row{display:flex; align-items:center; gap:12px; margin-bottom:11px;}
+.bar-row .lab{width:130px; font-size:13px; flex-shrink:0;}
+.bar-track{flex:1; height:10px; background:var(--canvas); border-radius:999px; overflow:hidden;}
+.bar-fill{height:100%; border-radius:999px;}
+.bar-row .pct{width:38px; text-align:right; font-size:12.5px; font-weight:700; color:var(--ink-soft);}
+
+.editable-section{background:#fff; border:1px solid var(--line); border-radius:var(--radius-m); padding:18px 20px; margin-bottom:12px;}
+.editable-section h4{font-size:12.5px; text-transform:uppercase; color:var(--ink-soft); letter-spacing:.05em; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;}
+.editable-section textarea{border:none; padding:0; font-size:14.5px; line-height:1.65; min-height:60px; resize:vertical;}
+.editable-section textarea:focus{outline:none;}
+
+.stepbar{display:flex; gap:6px; margin-bottom:24px;}
+.stepbar .s{flex:1; height:5px; border-radius:99px; background:var(--line);}
+.stepbar .s.on{background:var(--deep);}
+
+.hidden{display:none !important;}
+.flex{display:flex;}
+.gap8{gap:8px;} .gap12{gap:12px;} .gap16{gap:16px;}
+.mt8{margin-top:8px;} .mt14{margin-top:14px;} .mt20{margin-top:20px;} .mt26{margin-top:26px;}
+.mb8{margin-bottom:8px;} .mb14{margin-bottom:14px;}
+.empty{text-align:center; padding:50px 20px; color:var(--ink-soft);}
+.toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:var(--ink); color:#fff; padding:12px 20px; border-radius:999px; font-size:13.5px; font-weight:600; z-index:80; box-shadow:0 8px 24px rgba(0,0,0,0.25);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* =========================================================
+   TUKLAS 2.0 — prototype application
+   Single-file demo covering the core learning loop.
+   Notes on scope, printed to console for transparency:
+   - No backend/database: state lives in memory for this session.
+   - AI requests are server-side only in the production application.
+     This preserved preview does not call third-party AI providers directly.
+   - YouTube captions cannot be fetched from this sandbox, so
+     Video-to-Lesson accepts a pasted transcript (or a demo).
+   ========================================================= */
+
+function escapeHTML(value){
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[char]));
+}
+
+async function askClaude(system, userText, {json=false, maxTokens=1400} = {}){
+  void system; void userText; void json; void maxTokens;
+  throw new Error("AI preview requests must use the authenticated server API.");
+}
+
+/* ---------------- seed data ---------------- */
+const SUBJECTS = [
+  {id:'math', name:'Mathematics', color:'#2F7A5D',
+    topics:[
+      {id:'numbers', name:'Numbers', mastery:90},
+      {id:'integers', name:'Integers', mastery:82},
+      {id:'fractions', name:'Fractions', mastery:64},
+      {id:'algebra', name:'Algebra', mastery:73},
+      {id:'geometry', name:'Geometry', mastery:45},
+    ]},
+  {id:'science', name:'Science', color:'#3D6FB4',
+    topics:[
+      {id:'cells', name:'Cells', mastery:88},
+      {id:'photosynthesis', name:'Photosynthesis', mastery:58},
+      {id:'ecosystems', name:'Ecosystems', mastery:71},
+    ]},
+  {id:'english', name:'English', color:'#B4553D',
+    topics:[
+      {id:'grammar', name:'Grammar', mastery:91},
+      {id:'comprehension', name:'Reading Comprehension', mastery:84},
+      {id:'writing', name:'Writing', mastery:77},
+    ]},
+];
+
+const DEMOS = {
+  integers: {
+    title:"Adding Integers — Grade 7 Math",
+    url:"https://youtube.com/watch?v=demo-integers",
+    transcript:`Hi everyone, welcome back. Today we're learning how to add integers, which means whole numbers that can be positive, negative, or zero. Let's start with a number line from negative ten to ten. When we add two positive integers, we move to the right, just like regular addition. For example, three plus four: start at three, move four spaces right, and we land on seven. When we add two negative integers, we move to the left instead. Negative three plus negative four: start at negative three, move four spaces left, landing on negative seven. Notice that when the signs are the same, we add the numbers together and keep that sign. Now, what happens when the signs are different? Let's try five plus negative two. Start at five, and since we're adding a negative number, we move two spaces left, landing on three. Another example: negative six plus four. Start at negative six, move four spaces right, landing on negative two. When the signs are different, we find the difference between the numbers, and the answer takes the sign of whichever number is farther from zero, meaning it has the bigger absolute value. A common mistake students make is forgetting to change direction when the sign changes, or automatically making the answer negative just because one number was negative. Remember, the sign of the answer depends on which number has the bigger absolute value, not just on seeing a negative sign somewhere in the problem. Let's practice: what is negative eight plus three? Pause and think... the answer is negative five, because eight has the bigger absolute value and it's negative. Great job today, keep practicing with the number line until it feels automatic.`
+  },
+  photosynthesis: {
+    title:"Photosynthesis Explained — Grade 8 Science",
+    url:"https://youtube.com/watch?v=demo-photosynthesis",
+    transcript:`Today we're exploring photosynthesis, the process plants use to make their own food using sunlight. Plants need three main ingredients: carbon dioxide from the air, water absorbed by the roots, and sunlight captured by a green pigment called chlorophyll, found inside structures called chloroplasts. Inside the leaf, these ingredients combine in a chemical reaction that produces glucose, a sugar the plant uses for energy and growth, and releases oxygen as a byproduct, which is why plants are so important for the air we breathe. The word equation is: carbon dioxide plus water, using light energy, produces glucose plus oxygen. Photosynthesis mostly happens in the leaves, specifically in cells containing chloroplasts, which is why leaves are usually green. A common misconception is that plants only "breathe out" oxygen and never take in gases, but plants actually take in carbon dioxide during the day for photosynthesis and also do cellular respiration, like we do, taking in oxygen and releasing carbon dioxide, all the time. Another misconception is that photosynthesis happens at night — it actually requires light, so it mainly happens during the day. Roots are important too, since they absorb the water needed for the reaction, and the plant's vascular system carries that water up to the leaves. Let's recap: sunlight, water and carbon dioxide go in; glucose and oxygen come out, and it all happens thanks to chlorophyll in the chloroplasts.`
+  }
+};
+
+/* ---------------- state ---------------- */
+const state = {
+  role: null,          // 'student' | 'teacher'
+  view: 'landing',
+  studentName: 'Mika',
+  streak: 5,
+  history: [],          // {topic, difficulty, correct}
+  mastery: JSON.parse(JSON.stringify(SUBJECTS)),
+  lesson: null,          // generated lesson object
+  lessonMeta: null,       // {subject, gradeLevel, sourceTitle}
+  analysis: null,         // stage-1 analysis result
+  transcriptDraft: "",
+  urlDraft: "",
+  chatOpen: false,
+  chatMessages: [],
+  chatLoading: false,
+  chatConversationId: null,
+  practice: null,          // {subject, topic, difficulty, total, index, correctStreak, wrongStreak, current, answered, log:[]}
+  quiz: null,
+  teacherFlow: null,       // mirrors lesson creation with review/publish
+  toast: null,
+};
+
+function toast(msg){
+  state.toast = msg;
+  render();
+  setTimeout(()=>{ state.toast = null; render(); }, 2600);
+}
+
+function go(view, extra){ state.view = view; if(extra) Object.assign(state, extra); render(); window.scrollTo(0,0); }
+
+/* ---------------- render dispatch ---------------- */
+function render(){
+  const app = document.getElementById('app');
+  if(state.view === 'landing'){ app.innerHTML = viewLanding(); bindLanding(); return; }
+  app.innerHTML = shell();
+  bindShellNav();
+  const content = document.getElementById('mainContent');
+  const v = state.view;
+  if(v==='student-home'){ content.innerHTML = viewStudentHome(); bindStudentHome(); }
+  else if(v==='discover'){ content.innerHTML = viewDiscover(); bindDiscover(); }
+  else if(v==='learn'){ content.innerHTML = viewLearnHub(); bindLearnHub(); }
+  else if(v==='video-lesson'){ content.innerHTML = viewVideoLesson(); bindVideoLesson(); }
+  else if(v==='lesson-view'){ content.innerHTML = viewLessonViewer(); bindLessonViewer(); }
+  else if(v==='practice-config'){ content.innerHTML = viewPracticeConfig(); bindPracticeConfig(); }
+  else if(v==='practice-run'){ content.innerHTML = viewPracticeRun(); bindPracticeRun(); }
+  else if(v==='quiz-result'){ content.innerHTML = viewQuizResult(); bindQuizResult(); }
+  else if(v==='progress'){ content.innerHTML = viewProgress(); }
+  else if(v==='teacher-dashboard'){ content.innerHTML = viewTeacherDashboard(); bindTeacherDashboard(); }
+  else if(v==='teacher-create'){ content.innerHTML = viewTeacherCreate(); bindTeacherCreate(); }
+  if(state.role==='student') renderChatDrawer();
+  if(state.toast){
+    const t = document.createElement('div'); t.className='toast'; t.textContent=state.toast;
+    document.body.appendChild(t);
+  }
+}
+
+/* ================= LANDING ================= */
+function viewLanding(){
+  const loop = [
+    ['Discover','Find lessons, videos and practice that match what a student needs next.'],
+    ['Learn','A YouTube video, a teacher lesson, or an uploaded file becomes an interactive lesson.'],
+    ['Understand','Short checks after every idea confirm it actually landed.'],
+    ['Practice','Adaptive questions that get easier or harder based on real performance.'],
+    ['Assess','Lesson, topic or subject quizzes with more than just a score.'],
+    ['Analyze','Every wrong answer is diagnosed — not just marked incorrect.'],
+    ['Review','Weak skills resurface automatically until they are solid.'],
+    ['Master','A mastery record built from repeated performance, not one quiz.'],
+  ];
+  return `
+  <div class="landing">
+    <div class="landing-nav">
+      <div class="brand"><span class="mark"></span>Tuklas</div>
+      <div class="landing-nav-links">
+        <a href="#how">How it works</a><a href="#loop">The loop</a><a href="#audience">Students &amp; teachers</a><a href="#faq">FAQ</a>
+      </div>
+      <div class="flex gap8">
+        <button class="btn btn-ghost btn-sm" id="navTeacher">I'm a teacher</button>
+        <button class="btn btn-primary btn-sm" id="navStudent">Start learning</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div>
+        <h1>Learn smarter.<br>Understand deeper.<br>Master more.</h1>
+        <p class="sub">Tuklas turns a teacher's lesson, a YouTube video, or a set of notes into an interactive learning experience — then guides each student through practice, feedback and mastery. Not a chatbot. Not a summarizer. A learning ecosystem.</p>
+        <div class="hero-cta">
+          <button class="btn btn-accent" id="heroStudent">Start Learning</button>
+          <button class="btn btn-ghost" id="heroTeacher">I'm a Teacher</button>
+        </div>
+      </div>
+      <div class="trail-wrap">
+        <div class="trail-title">The Tuklas learning loop</div>
+        <div class="trail" id="landingTrail"></div>
+      </div>
+    </div>
+
+    <div class="section" id="how">
+      <div class="section-head">
+        <div class="eyebrow">How Tuklas works</div>
+        <h2>The teacher provides the lesson. Tuklas makes it interactive.</h2>
+        <p>AI guides the student, practice builds skill, assessment finds the gaps, and feedback closes them — while every score turns into a mastery record the student and teacher can both see.</p>
+      </div>
+    </div>
+
+    <div class="section" id="loop" style="padding-top:0;">
+      <div class="loop-grid">
+        ${loop.map(([t,d],i)=>`<div class="loop-card"><h4>${i+1}. ${t}</h4><p>${d}</p></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section" id="audience" style="padding-top:0;">
+      <div class="audience-grid">
+        <div class="audience-card student">
+          <h3>For students</h3>
+          <p class="muted small">One place to discover, learn, ask, practice and know exactly what to study next.</p>
+          <ul>
+            <li>Turn any teacher video into a guided lesson with checks along the way</li>
+            <li>Ask Tuklas when a step doesn't make sense — it explains, it doesn't just answer</li>
+            <li>Practice adapts to you: harder when you're ready, gentler when you're not</li>
+            <li>See mastery per topic, built from real performance over time</li>
+          </ul>
+          <button class="btn btn-primary btn-sm" id="audStudent">Start learning</button>
+        </div>
+        <div class="audience-card teacher">
+          <h3>For teachers</h3>
+          <p class="muted small">Build faster. Review everything. Publish with confidence.</p>
+          <ul>
+            <li>Paste a video transcript or upload material — Tuklas drafts the full lesson</li>
+            <li>Every AI section is editable before it reaches a single student</li>
+            <li>See class mastery, hardest topics and who needs support this week</li>
+            <li>Turn on or off AI assistance per assignment</li>
+          </ul>
+          <button class="btn btn-primary btn-sm" id="audTeacher">Open teacher view</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="faq" style="padding-top:0;">
+      <div class="section-head"><div class="eyebrow">Good to know</div><h2>Frequently asked</h2></div>
+      <div class="faq">
+        <div class="faq-item"><h4>Is this just ChatGPT with a school skin?</h4><p>No. Ask Tuklas is one part of a full loop — discover, learn, practice, assess, analyze, review, master — that's grounded in the actual lesson, tracked over time, and built for teachers to supervise.</p></div>
+        <div class="faq-item"><h4>Does the AI replace the teacher?</h4><p>No. Teachers create and review every lesson before it reaches students, can disable AI help on assessments, and see everything Tuklas generates.</p></div>
+        <div class="faq-item"><h4>Where does lesson content come from?</h4><p>Primarily from the source the teacher or student provides — a video transcript, a document, or a teacher's own lesson. Anything Tuklas adds beyond that is clearly labeled "Additional Example" or "AI Additional Explanation."</p></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>© Tuklas — an AI-powered learning ecosystem, not a homework solver.</div>
+      <div>Discover · Learn · Understand · Practice · Assess · Analyze · Review · Master</div>
+    </div>
+  </div>`;
+}
+function bindLanding(){
+  const goStudent = ()=>{ state.role='student'; go('student-home'); };
+  const goTeacher = ()=>{ state.role='teacher'; go('teacher-dashboard'); };
+  ['navStudent','heroStudent','audStudent'].forEach(id=>document.getElementById(id).onclick=goStudent);
+  ['navTeacher','heroTeacher','audTeacher'].forEach(id=>document.getElementById(id).onclick=goTeacher);
+  const steps = ['Discover','Learn','Understand','Practice','Assess','Analyze','Review','Master'];
+  const el = document.getElementById('landingTrail');
+  el.innerHTML = steps.map((s,i)=>`<div class="trail-step ${i===1?'active':''}"><div class="trail-dot">${i+1}</div><div><div class="trail-label">${s}</div></div></div>`).join('');
+}
+
+/* ================= APP SHELL ================= */
+function shell(){
+  const studentLinks = [
+    ['student-home','Home','⌂'], ['discover','Discover','◎'], ['learn','Learn','▶'],
+    ['practice-config','Practice','✎'], ['progress','Progress','▲'],
+  ];
+  const teacherLinks = [
+    ['teacher-dashboard','Dashboard','▦'], ['teacher-create','Create Lesson','+'],
+  ];
+  const links = state.role==='teacher' ? teacherLinks : studentLinks;
+  return `
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="brand"><span class="mark"></span>Tuklas</div>
+      <div class="role-switch">
+        <button class="${state.role==='student'?'on':''}" data-role="student">Student</button>
+        <button class="${state.role==='teacher'?'on':''}" data-role="teacher">Teacher</button>
+      </div>
+      <div class="side-sep"></div>
+      ${links.map(([v,label,ic])=>`<a href="#" class="side-link ${state.view===v?'active':''}" data-nav="${v}"><span class="ic">${ic}</span>${label}</a>`).join('')}
+      ${state.role==='student' ? `<div class="side-sep"></div><a href="#" class="side-link" id="askTuklasNav"><span class="ic">✦</span>Ask Tuklas</a>` : ''}
+      <div class="side-foot">Demo account: ${state.role==='teacher' ? 'Ms. Santos (Teacher)' : state.studentName+' (Grade 7)'}<br><a href="#" id="backLanding" style="color:rgba(255,255,255,0.55); text-decoration:underline;">Exit demo</a></div>
+    </div>
+    <div class="main" id="mainContent"></div>
+  </div>`;
+}
+function bindShellNav(){
+  document.getElementById('backLanding').onclick = (e)=>{e.preventDefault(); state.role=null; state.chatConversationId=null; state.chatMessages=[]; go('landing');};
+  document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{
+    state.role = b.dataset.role;
+    go(state.role==='teacher' ? 'teacher-dashboard' : 'student-home');
+  });
+  document.querySelectorAll('[data-nav]').forEach(a=>a.onclick=(e)=>{e.preventDefault(); go(a.dataset.nav);});
+  const at = document.getElementById('askTuklasNav');
+  if(at) at.onclick=(e)=>{e.preventDefault(); openChat();};
+}
+
+/* ================= STUDENT HOME ================= */
+function viewStudentHome(){
+  return `
+  <div class="topbar">
+    <div><div class="hi headline">Welcome back, ${state.studentName} 👋</div><div class="muted small">Day ${state.streak} learning streak</div></div>
+    <div class="pill">🔥 ${state.streak}-day streak</div>
+  </div>
+
+  <div class="bigsearch">
+    <span style="font-size:18px;">🔎</span>
+    <input type="text" id="homeSearch" placeholder="What would you like to learn today?">
+    <button class="btn btn-primary btn-sm" id="homeSearchGo">Search</button>
+  </div>
+
+  <div class="quickrow">
+    <button class="quickbtn" data-nav2="learn"><span class="ic">▶</span>Learn from a Video</button>
+    <button class="quickbtn" id="qbAsk"><span class="ic">✦</span>Ask Tuklas</button>
+    <button class="quickbtn" data-nav2="practice-config"><span class="ic">✎</span>Practice</button>
+    <button class="quickbtn" data-nav2="practice-config" data-quiz="1"><span class="ic">☑</span>Take a Quiz</button>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="section-title"><h3>Continue Learning</h3><a class="link-more" href="#" data-nav2="learn">See all →</a></div>
+      <div class="lesson-row">
+        <div class="swatch" style="background:${SUBJECTS[0].color};">∑</div>
+        <div class="meta"><div class="t">Adding Integers</div><div class="s">Mathematics · Grade 7 · 65% complete</div>
+          <div class="progress-track"><div class="progress-fill" style="width:65%;"></div></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" data-continue-demo="integers">Continue</button>
+      </div>
+      <div class="lesson-row">
+        <div class="swatch" style="background:${SUBJECTS[1].color};">❧</div>
+        <div class="meta"><div class="t">Photosynthesis</div><div class="s">Science · Grade 8 · 20% complete</div>
+          <div class="progress-track"><div class="progress-fill" style="width:20%;"></div></div>
+        </div>
+        <button class="btn btn-ghost btn-sm" data-continue-demo="photosynthesis">Continue</button>
+      </div>
+
+      <div class="section-title"><h3>Recommended For You</h3></div>
+      <div class="lesson-row">
+        <div class="swatch" style="background:${SUBJECTS[0].color};">⅟</div>
+        <div class="meta"><div class="t">Fractions — Unlike Denominators</div><div class="s">"Your recent practice shows this is your weakest skill in Mathematics."</div></div>
+        <button class="btn btn-accent btn-sm" data-nav2="practice-config" data-topic="fractions">Practice Now</button>
+      </div>
+
+      <div class="section-title"><h3>Needs Practice</h3></div>
+      <div class="lesson-row">
+        <div class="swatch" style="background:${SUBJECTS[1].color};">△</div>
+        <div class="meta"><div class="t">Geometry — Shapes &amp; Angles</div><div class="s">Mastery 45% · Beginning level</div></div>
+        <button class="btn btn-ghost btn-sm" data-nav2="practice-config" data-topic="geometry">Review</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card mb14">
+        <div class="section-title" style="margin-top:0;"><h3>Your Progress</h3></div>
+        ${SUBJECTS.map(s=>{
+          const avg = Math.round(s.topics.reduce((a,t)=>a+t.mastery,0)/s.topics.length);
+          return `<div class="stat-row"><span>${s.name}</span><span class="n">${avg}%</span></div>`;
+        }).join('')}
+        <button class="btn btn-ghost btn-sm mt14" style="width:100%;" data-nav2="progress">View full progress →</button>
+      </div>
+      <div class="card mb14">
+        <div class="section-title" style="margin-top:0;"><h3>Today's Goal</h3></div>
+        <p class="muted small mb8">2 of 3 activities completed</p>
+        <div class="trailbar">
+          <div class="seg fill"></div><div class="seg fill"></div><div class="seg"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-top:0;"><h3>Recent Results</h3></div>
+        <div class="stat-row"><span>Integers Quiz</span><span class="n" style="color:var(--leaf);">88%</span></div>
+        <div class="stat-row"><span>Fractions Practice</span><span class="n" style="color:var(--brick);">54%</span></div>
+        <div class="stat-row"><span>Grammar Quiz</span><span class="n" style="color:var(--leaf);">95%</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+function bindStudentHome(){
+  document.querySelectorAll('[data-nav2]').forEach(el=>el.onclick=(e)=>{
+    e.preventDefault();
+    if(el.dataset.topic) sessionStorage.setItem('presetTopic', el.dataset.topic);
+    go(el.dataset.nav2);
+  });
+  document.getElementById('qbAsk').onclick = openChat;
+  document.getElementById('homeSearchGo').onclick = ()=>go('discover');
+  document.querySelectorAll('[data-continue-demo]').forEach(b=>b.onclick=()=>loadDemoLesson(b.dataset.continueDemo));
+}
+
+/* ================= DISCOVER ================= */
+function viewDiscover(){
+  return `
+  <div class="hi headline mb14">Discover</div>
+  <div class="bigsearch"><span style="font-size:18px;">🔎</span><input type="text" id="discSearch" placeholder="Search subjects, topics, lessons or skills — e.g. 'Grade 7 fractions'"></div>
+  <div class="tag-row" id="discTags">
+    ${SUBJECTS.map(s=>`<span class="tag" data-subj="${s.id}">${s.name}</span>`).join('')}
+  </div>
+  <div id="discResults"></div>`;
+}
+function bindDiscover(){
+  const results = document.getElementById('discResults');
+  function draw(){
+    const groups = [
+      ['Lessons', SUBJECTS.flatMap(s=>s.topics.map(t=>`${t.name} — ${s.name} lesson`))],
+      ['Videos', ['Adding Integers — Grade 7 Math (video)', 'Photosynthesis Explained — Grade 8 Science (video)']],
+      ['Practice', SUBJECTS.flatMap(s=>s.topics.map(t=>`Practice: ${t.name}`))],
+      ['Assessments', SUBJECTS.map(s=>`${s.name} — Topic Quiz`)],
+      ['Review Materials', ['Weak-skill flashcards: Fractions', 'Weak-skill flashcards: Geometry']],
+    ];
+    results.innerHTML = groups.map(([label, items])=>`
+      <div class="result-group"><h4>${label}</h4>
+      ${items.slice(0,4).map(it=>`<div class="lesson-row"><div class="swatch" style="background:var(--deep);">◎</div><div class="meta"><div class="t">${it}</div></div><button class="btn btn-ghost btn-sm">Open</button></div>`).join('')}
+      </div>`).join('');
+  }
+  draw();
+  document.querySelectorAll('#discTags .tag').forEach(t=>t.onclick=()=>{ t.classList.toggle('on'); });
+  document.getElementById('discSearch').oninput = draw;
+}
+
+/* ================= LEARN HUB ================= */
+function viewLearnHub(){
+  return `
+  <div class="hi headline mb14">Learn</div>
+  <p class="muted mb14">Choose how you want to learn this topic.</p>
+  <div class="method-grid">
+    <div class="method-card" id="mVideo"><div class="ic">▶</div><h4>YouTube Video Lesson</h4><p>Paste a video link or transcript and Tuklas builds an interactive lesson from it.</p></div>
+    <div class="method-card" id="mAI"><div class="ic">✦</div><h4>AI Lesson</h4><p>Describe a topic and Tuklas drafts a lesson to get you started.</p></div>
+    <div class="method-card" id="mTeacher"><div class="ic">🏫</div><h4>Teacher Lesson</h4><p>Continue a lesson your teacher assigned and published.</p></div>
+    <div class="method-card" id="mUpload"><div class="ic">📄</div><h4>Uploaded Study Material</h4><p>Turn your notes, slides or PDFs into a lesson. (Prepared for a future release.)</p></div>
+    <div class="method-card" id="mReview"><div class="ic">↺</div><h4>Review Previous Lesson</h4><p>Revisit a lesson you've already started.</p></div>
+  </div>`;
+}
+function bindLearnHub(){
+  document.getElementById('mVideo').onclick = ()=>go('video-lesson');
+  document.getElementById('mReview').onclick = ()=>loadDemoLesson('integers');
+  document.getElementById('mTeacher').onclick = ()=>loadDemoLesson('integers');
+  document.getElementById('mAI').onclick = ()=>toast("AI Lesson (topic-only) — coming right after Video-to-Lesson in this preview.");
+  document.getElementById('mUpload').onclick = ()=>toast("Upload materials is on the roadmap — architecture is ready, not wired up in this preview.");
+}
+
+/* ================= VIDEO → LESSON ================= */
+function viewVideoLesson(){
+  return `
+  <div class="hi headline mb14">Tuklas Video Lesson</div>
+  <p class="muted mb14" style="max-width:62ch;">Turn an educational YouTube video into an interactive lesson. This preview can't fetch live captions from YouTube, so paste the transcript text (from YouTube's "Show transcript" option) alongside the link — or try a demo below.</p>
+  <div class="vurl-box">
+    <div class="field"><label>YouTube lesson link</label><input type="text" id="vUrl" placeholder="https://youtube.com/watch?v=..." value="${state.urlDraft}"></div>
+    <div class="field"><label>Transcript / captions (paste here)</label><textarea id="vTranscript" rows="7" placeholder="Paste the video transcript text so Tuklas can analyze it...">${state.transcriptDraft}</textarea></div>
+    <div class="flex gap12" style="align-items:center;">
+      <button class="btn btn-primary" id="analyzeBtn">Analyze Lesson</button>
+      <span class="muted small">or try a demo:</span>
+      <button class="btn btn-ghost btn-sm" data-demo="integers">Adding Integers</button>
+      <button class="btn btn-ghost btn-sm" data-demo="photosynthesis">Photosynthesis</button>
+    </div>
+    <div id="vStatus"></div>
+    <div id="vAnalysis"></div>
+  </div>`;
+}
+function bindVideoLesson(){
+  document.getElementById('vUrl').oninput = e=> state.urlDraft = e.target.value;
+  document.getElementById('vTranscript').oninput = e=> state.transcriptDraft = e.target.value;
+  document.querySelectorAll('[data-demo]').forEach(b=>b.onclick=()=>{
+    const d = DEMOS[b.dataset.demo];
+    state.urlDraft = d.url; state.transcriptDraft = d.transcript;
+    document.getElementById('vUrl').value = d.url;
+    document.getElementById('vTranscript').value = d.transcript;
+  });
+  document.getElementById('analyzeBtn').onclick = runAnalysis;
+}
+
+async function runAnalysis(){
+  const url = document.getElementById('vUrl').value.trim();
+  const transcript = document.getElementById('vTranscript').value.trim();
+  const statusEl = document.getElementById('vStatus');
+  if(!transcript){
+    statusEl.innerHTML = `<div class="notice">No transcript detected. Tuklas can't watch or auto-fetch captions from a YouTube link in this preview — paste the transcript text above, or use one of the demo videos, and try again.</div>`;
+    return;
+  }
+  statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> Analyzing the lesson — identifying subject, objectives, vocabulary and misconceptions…</div>`;
+  document.getElementById('vAnalysis').innerHTML = '';
+  try{
+    const sys = `You are the Video Analyzer module inside Tuklas, an educational platform. You only ever have access to TEXT (a transcript). Never claim to have seen video/visual content. Analyze the transcript of an educational video and return STRICT JSON only, no markdown fences, matching exactly this shape:
+{"subject":"","gradeLevel":"","mainTopic":"","subtopics":["",""],"learningObjectives":["",""],"keyConcepts":["",""],"vocabulary":[{"term":"","definition":""}],"examplesFromSource":["",""],"proceduresOrFormulas":["",""],"possibleMisconceptions":["",""],"estimatedGradeConfidence":"high|medium|low"}
+Base everything on the transcript content. Keep each list to 2-5 concise items.`;
+    const analysis = await askClaude(sys, `Video title (if known): ${document.getElementById('vUrl').value || 'unknown'}\n\nTranscript:\n${transcript}`, {json:true, maxTokens:1200});
+    state.analysis = analysis;
+    state.lessonMeta = {sourceTitle: url || 'Pasted transcript', transcript};
+    document.getElementById('vStatus').innerHTML = '';
+    document.getElementById('vAnalysis').innerHTML = renderAnalysisPreview(analysis);
+    document.getElementById('genLessonBtn').onclick = ()=>runLessonGeneration(transcript, analysis);
+  }catch(err){
+    statusEl.innerHTML = `<div class="notice">Something went wrong analyzing this video (${err.message}). Try again, or use a demo video.</div>`;
+  }
+}
+function renderAnalysisPreview(a){
+  return `
+  <div class="mt20">
+    <div class="badge-row">
+      <span class="badge subject">${escapeHTML(a.subject)}</span>
+      <span class="badge grade">Grade ${escapeHTML(a.gradeLevel)}</span>
+      <span class="badge time">Confidence: ${escapeHTML(a.estimatedGradeConfidence)}</span>
+    </div>
+    <h3 class="mb8">${escapeHTML(a.mainTopic)}</h3>
+    <p class="muted small mb14">Subtopics: ${a.subtopics.map(escapeHTML).join(', ')}</p>
+    <div class="grid-2">
+      <div><b class="small">Learning objectives</b><ul>${a.learningObjectives.map(o=>`<li class="small">${escapeHTML(o)}</li>`).join('')}</ul></div>
+      <div><b class="small">Possible misconceptions found</b><ul>${a.possibleMisconceptions.map(o=>`<li class="small">${escapeHTML(o)}</li>`).join('')}</ul></div>
+    </div>
+    <button class="btn btn-accent mt14" id="genLessonBtn">Generate Interactive Lesson →</button>
+  </div>`;
+}
+async function runLessonGeneration(transcript, analysis){
+  const statusEl = document.getElementById('vStatus');
+  statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> Building the interactive lesson — sections, examples, checks and a quiz…</div>`;
+  document.getElementById('vAnalysis').innerHTML = '';
+  try{
+    const sys = `You are the Lesson Generator module inside Tuklas. Using the transcript (source) and the prior analysis, produce a STRICT JSON lesson, no markdown fences, in this exact shape:
+{
+ "title":"", "subject":"", "gradeLevel":"", "estimatedMinutes": 15,
+ "objectives":["",""],
+ "vocabulary":[{"term":"","definition":""}],
+ "sections":[
+   {"heading":"Let's Understand","sourceExplanation":"plain-English explanation grounded in the transcript","aiExplanation":"OPTIONAL extra clarifying explanation not in the source, or empty string if not needed"},
+   {"heading":"Example","sourceExplanation":"a worked example FROM the transcript if present, else empty string","aiExplanation":"an ADDITIONAL example the transcript did not include, clearly a new example"}
+ ],
+ "checks":[{"question":"a short check-for-understanding question","options":["A","B","C","D"],"correctIndex":0,"explanation":""}],
+ "commonMistakes":["",""],
+ "keyTakeaways":["",""],
+ "quiz":[{"question":"","options":["A","B","C","D"],"correctIndex":0,"explanation":"","skill":""}]
+}
+Rules: sourceExplanation/sourceContent must reflect only what's in the transcript. Anything invented (new examples, extra explanations) goes ONLY in aiExplanation fields or is clearly a new "checks"/"quiz" item — never presented as something the original speaker said. Produce 3-4 "sections", 2-3 "checks", and 4 "quiz" questions. Keep it appropriate for the stated grade level.`;
+    const userMsg = `Transcript:\n${transcript}\n\nPrior analysis JSON:\n${JSON.stringify(analysis)}`;
+    const lesson = await askClaude(sys, userMsg, {json:true, maxTokens:3000});
+    state.lesson = lesson;
+    state.lesson._source = transcript;
+    state.lesson._checkState = {}; // per check index answered state
+    statusEl.innerHTML='';
+    go('lesson-view');
+  }catch(err){
+    statusEl.innerHTML = `<div class="notice">Lesson generation failed (${err.message}). Please try again.</div>`;
+  }
+}
+function loadDemoLesson(key){
+  const d = DEMOS[key];
+  state.urlDraft = d.url; state.transcriptDraft = d.transcript;
+  go('video-lesson');
+  setTimeout(()=>{
+    document.getElementById('vUrl').value = d.url;
+    document.getElementById('vTranscript').value = d.transcript;
+    document.getElementById('analyzeBtn').click();
+  }, 30);
+}
+
+/* ================= LESSON VIEWER ================= */
+function viewLessonViewer(){
+  const L = state.lesson;
+  if(!L) return `<div class="empty">No lesson loaded yet. <a href="#" data-nav2="learn">Go to Learn →</a></div>`;
+  return `
+  <div class="lesson-shell">
+    <div>
+      <div class="lesson-head">
+        <div class="badge-row">
+          <span class="badge subject">${escapeHTML(L.subject)}</span>
+          <span class="badge grade">Grade ${escapeHTML(L.gradeLevel)}</span>
+          <span class="badge time">${L.estimatedMinutes} min</span>
+        </div>
+        <h1 style="font-size:26px;">${escapeHTML(L.title)}</h1>
+        <div class="mt14"><b class="small">Learning objectives</b><ul>${L.objectives.map(o=>`<li class="small">${escapeHTML(o)}</li>`).join('')}</ul></div>
+      </div>
+
+      ${L.vocabulary && L.vocabulary.length ? `
+      <div class="lesson-block"><h4>Key Vocabulary</h4>
+        <div class="vocab-grid">${L.vocabulary.map(v=>`<div class="vocab-item"><div class="w">${escapeHTML(v.term)}</div><div class="d">${escapeHTML(v.definition)}</div></div>`).join('')}</div>
+      </div>` : ''}
+
+      ${L.sections.map((s,i)=>`
+      <div class="lesson-block">
+        <h4>${escapeHTML(s.heading)}${L.sections.filter(x=>x.heading===s.heading).length>1 ? ' '+(i+1) : ''}</h4>
+        ${s.sourceExplanation ? `<span class="src-tag source">Source Content</span><div class="body">${escapeHTML(s.sourceExplanation)}</div>` : ''}
+        ${s.aiExplanation ? `<div class="mt14"><span class="src-tag ai">${s.heading.toLowerCase().includes('example') ? 'Additional Example' : 'AI Additional Explanation'}</span><div class="body">${escapeHTML(s.aiExplanation)}</div></div>` : ''}
+        ${(L.checks[i] && i < L.sections.length) ? renderCheck(i, L.checks[i]) : ''}
+      </div>`).join('')}
+
+      <div class="lesson-block">
+        <h4>Common Mistakes</h4>
+        <ul>${L.commonMistakes.map(m=>`<li class="small mt8">${escapeHTML(m)}</li>`).join('')}</ul>
+      </div>
+      <div class="lesson-block">
+        <h4>Key Takeaways</h4>
+        <ul>${L.keyTakeaways.map(m=>`<li class="small mt8">${escapeHTML(m)}</li>`).join('')}</ul>
+      </div>
+
+      <div class="flex gap12 mt20">
+        <button class="btn btn-primary" id="toQuizBtn">Take the Lesson Quiz →</button>
+        <button class="btn btn-ghost" data-nav2="learn">Back to Learn</button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="tutor-card">
+        <h4>✦ Ask Tuklas</h4>
+        <p>Get help with this exact lesson — explanations, another example, or a simpler version.</p>
+        <button class="chip-q" data-ask="Why did we do this step?">Why did we do this step?</button>
+        <button class="chip-q" data-ask="Can you explain this more simply?">Explain this more simply</button>
+        <button class="chip-q" data-ask="Give me another example.">Give me another example</button>
+        <button class="chip-q" data-ask="Explain this in Taglish.">Explain in Taglish</button>
+        <button class="btn btn-accent btn-sm mt8" style="width:100%;" id="openTutor">Open chat</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderCheck(i, c){
+  return `
+  <div class="check-q" id="check-${i}">
+    <b class="small">Check Your Understanding</b>
+    <p class="mt8" style="font-weight:600;">${escapeHTML(c.question)}</p>
+    <div class="check-opts">
+      ${c.options.map((o,oi)=>`<button class="opt-btn" data-check="${i}" data-oi="${oi}">${escapeHTML(o)}</button>`).join('')}
+    </div>
+    <div class="feedback-slot"></div>
+  </div>`;
+}
+function bindLessonViewer(){
+  document.querySelectorAll('[data-nav2]').forEach(el=>el.onclick=(e)=>{e.preventDefault(); go(el.dataset.nav2);});
+  const btn = document.getElementById('toQuizBtn');
+  if(btn) btn.onclick = ()=>startQuizFromLesson();
+  document.querySelectorAll('[data-check]').forEach(b=>{
+    b.onclick = ()=>{
+      const idx = b.dataset.check, oi = +b.dataset.oi;
+      const check = state.lesson.checks[idx];
+      const wrap = document.getElementById('check-'+idx);
+      wrap.querySelectorAll('.opt-btn').forEach(o=>o.disabled=true);
+      const correct = oi === check.correctIndex;
+      b.classList.add(correct?'correct':'wrong');
+      if(!correct){ wrap.querySelectorAll('.opt-btn')[check.correctIndex].classList.add('correct'); }
+      const fb = wrap.querySelector('.feedback-slot');
+      fb.innerHTML = `<div class="feedback ${correct?'good':'bad'}">${correct? 'Correct! ' : "Not quite. "}${escapeHTML(check.explanation)}</div>`;
+    };
+  });
+  document.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>{ openChat(); sendChat(b.dataset.ask); });
+  const ot = document.getElementById('openTutor'); if(ot) ot.onclick = openChat;
+}
+
+/* ================= ASK TUKLAS (chat) ================= */
+function openChat(){ state.chatOpen = true; if(state.chatMessages.length===0){
+  state.chatMessages.push({role:'bot', text: state.lesson ? `Hi ${state.studentName}! I'm here to help with "${state.lesson.title}". What's confusing you?` : `Hi ${state.studentName}! Ask me anything about what you're learning.`});
+} render(); }
+function closeChat(){ state.chatOpen = false; render(); }
+function renderChatDrawer(){
+  document.querySelectorAll('.chat-drawer, .fab-tutor').forEach(el=>el.remove());
+  if(!state.chatOpen){
+    const fab = document.createElement('button');
+    fab.className='fab-tutor'; fab.innerHTML='✦ Ask Tuklas';
+    fab.onclick = openChat;
+    document.body.appendChild(fab);
+    return;
+  }
+  const d = document.createElement('div'); d.className='chat-drawer';
+  d.innerHTML = `
+    <div class="chat-head"><span class="t">✦ Ask Tuklas</span><span class="close" id="chatClose">×</span></div>
+    <div class="chat-body" id="chatBody">${state.chatMessages.map(m=>`<div class="msg ${m.role==='user'?'user':'bot'}">${escapeHTML(m.text)}</div>`).join('')}${state.chatLoading?'<div class="msg bot"><span class="spinner"></span></div>':''}</div>
+    <div class="chat-suggest">
+      <button class="sugg-btn" data-q="I don't understand.">I don't understand</button>
+      <button class="sugg-btn" data-q="Explain this in Filipino.">In Filipino</button>
+      <button class="sugg-btn" data-q="Give me another example.">Another example</button>
+    </div>
+    <div class="chat-input"><input type="text" id="chatIn" placeholder="Ask about this lesson..."><button class="btn btn-primary btn-sm" id="chatSend">Send</button></div>
+  `;
+  document.body.appendChild(d);
+  document.getElementById('chatClose').onclick = closeChat;
+  document.getElementById('chatSend').onclick = ()=>{ const v=document.getElementById('chatIn').value.trim(); if(v) sendChat(v); };
+  document.getElementById('chatIn').onkeydown = (e)=>{ if(e.key==='Enter'){ const v=e.target.value.trim(); if(v) sendChat(v); } };
+  document.querySelectorAll('.sugg-btn').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
+  const body = document.getElementById('chatBody'); body.scrollTop = body.scrollHeight;
+}
+async function sendChat(text){
+  if(state.chatLoading) return;
+  state.chatMessages.push({role:'user', text});
+  state.chatLoading = true;
+  render();
+  try{
+    const response = await fetch('/api/ai/tutor', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        ...(state.chatConversationId ? { conversationId: state.chatConversationId } : {}),
+      }),
+    });
+    const payload = await response.json();
+    if(!response.ok){
+      if(response.status===401) throw new Error('This is a demo account. Sign in to Tuklas first to use Ask Tuklas.');
+      if(response.status===403) throw new Error('Ask Tuklas is available to student accounts. Sign in with a student account to continue.');
+      throw new Error(payload.error || 'Ask Tuklas could not answer right now. Please try again.');
+    }
+    state.chatConversationId = payload.data.conversationId;
+    state.chatMessages.push({role:'bot', text: payload.data.reply.content});
+  }catch(err){
+    state.chatMessages.push({role:'bot', text: err instanceof Error ? err.message : 'Ask Tuklas could not connect. Please try again.'});
+  }
+  state.chatLoading = false;
+  render();
+}
+/* ================= PRACTICE CONFIG ================= */
+function viewPracticeConfig(){
+  const preset = sessionStorage.getItem('presetTopic');
+  return `
+  <div class="hi headline mb14">Practice</div>
+  <p class="muted mb14">Choose what to practice. Difficulty adapts automatically as you go.</p>
+  <div class="card">
+    <div class="field"><label>Subject</label>
+      <div class="opt-chip-row" id="subjRow">
+        ${SUBJECTS.map((s,i)=>`<button class="opt-chip ${i===0?'on':''}" data-subj="${s.id}">${s.name}</button>`).join('')}
+      </div>
+    </div>
+    <div class="field"><label>Topic</label>
+      <div class="opt-chip-row" id="topicRow"></div>
+    </div>
+    <div class="field"><label>Difficulty</label>
+      <div class="opt-chip-row">
+        <button class="opt-chip on" data-diff="Easy">Easy</button>
+        <button class="opt-chip" data-diff="Medium">Medium</button>
+        <button class="opt-chip" data-diff="Hard">Hard</button>
+      </div>
+    </div>
+    <div class="field"><label>Number of questions</label>
+      <div class="opt-chip-row">
+        <button class="opt-chip" data-n="5">5</button>
+        <button class="opt-chip on" data-n="8">8</button>
+        <button class="opt-chip" data-n="12">12</button>
+      </div>
+    </div>
+    <button class="btn btn-accent mt14" id="startPractice">Start Practice →</button>
+  </div>`;
+}
+function bindPracticeConfig(){
+  let subj = SUBJECTS[0].id, diff='Easy', n=8;
+  const preset = sessionStorage.getItem('presetTopic');
+  function drawTopics(){
+    const s = SUBJECTS.find(x=>x.id===subj);
+    document.getElementById('topicRow').innerHTML = s.topics.map((t,i)=>`<button class="opt-chip ${ (preset===t.id) || (!preset && i===0) ?'on':''}" data-topic="${t.id}">${t.name}</button>`).join('');
+    bindTopicChips();
+  }
+  let topic = null;
+  function bindTopicChips(){
+    document.querySelectorAll('[data-topic]').forEach(b=>{
+      if(b.classList.contains('on')) topic = b.dataset.topic;
+      b.onclick = ()=>{ document.querySelectorAll('[data-topic]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); topic=b.dataset.topic; };
+    });
+  }
+  document.querySelectorAll('[data-subj]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('[data-subj]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); subj=b.dataset.subj; sessionStorage.removeItem('presetTopic'); drawTopics();
+  });
+  document.querySelectorAll('[data-diff]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-diff]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); diff=b.dataset.diff; });
+  document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{ document.querySelectorAll('[data-n]').forEach(x=>x.classList.remove('on')); b.classList.add('on'); n=+b.dataset.n; });
+  if(preset){ const s = SUBJECTS.find(sub=>sub.topics.some(t=>t.id===preset)); if(s){ subj=s.id; document.querySelectorAll('[data-subj]').forEach(x=>x.classList.toggle('on', x.dataset.subj===subj)); } }
+  drawTopics();
+  document.getElementById('startPractice').onclick = ()=>{
+    sessionStorage.removeItem('presetTopic');
+    startPractice(subj, topic, diff, n);
+  };
+}
+
+async function startPractice(subjId, topicId, difficulty, total){
+  const subj = SUBJECTS.find(s=>s.id===subjId);
+  const top = subj.topics.find(t=>t.id===topicId);
+  state.practice = {subjId, topicId, subjName:subj.name, topicName:top.name, difficulty, total, index:0, correctCount:0, log:[], current:null, answered:false, loading:true};
+  go('practice-run');
+  await fetchNextQuestion();
+}
+async function fetchNextQuestion(){
+  const p = state.practice;
+  p.loading = true; p.answered = false; p.current = null; render();
+  if(p._lessonQuiz){
+    p.current = p.lessonQuestions[p.index];
+    p.loading = false;
+    render();
+    return;
+  }
+  try{
+    const sys = `You are the Question Generator module inside Tuklas. Generate ONE practice question for a K-12 student. Return STRICT JSON only, no markdown fences:
+{"type":"multiple_choice","question":"","options":["A","B","C","D"],"correctIndex":0,"explanation":"","skill":"","learningObjective":"","difficulty":"${p.difficulty}"}
+The question must test what a student at this level should know about the given topic, at the requested difficulty, and must not introduce unrelated concepts.`;
+    const q = await askClaude(sys, `Subject: ${p.subjName}\nTopic: ${p.topicName}\nDifficulty: ${p.difficulty}\nQuestion number ${p.index+1} of ${p.total}. Avoid repeating prior questions: ${p.log.map(l=>l.question).join(' | ')}`, {json:true, maxTokens:500});
+    p.current = q; p.loading = false; render();
+  }catch(err){
+    p.loading=false;
+    p.current = {question:"Which of these is an example of the concept just practiced?", options:["Option A","Option B","Option C","Option D"], correctIndex:0, explanation:"Fallback question — the AI question generator had trouble responding.", skill:p.topicName, difficulty:p.difficulty};
+    render();
+  }
+}
+
+function viewPracticeRun(){
+  const p = state.practice;
+  if(!p) return `<div class="empty">No practice session active.</div>`;
+  return `
+  <div class="hi headline mb8">${p.subjName} · ${p.topicName}</div>
+  <p class="muted mb14">Question ${p.index+1} of ${p.total} · Difficulty: <b>${p.difficulty}</b> · Streak this session: ${p.correctCount}✓</p>
+  <div class="trailbar mb14">${Array.from({length:p.total}).map((_,i)=>`<div class="seg ${i<p.index?'fill':''}"></div>`).join('')}</div>
+  <div class="qcard">
+    ${p.loading ? `<div class="loading-line"><span class="spinner"></span> Preparing your next question…</div>` : renderQuestionBody(p)}
+  </div>`;
+}
+function renderQuestionBody(p){
+  const q = p.current;
+  return `
+  <div class="qmeta"><span class="badge time">${escapeHTML(q.difficulty)}</span><span class="badge subject">${escapeHTML(q.skill||'')}</span></div>
+  <div class="qprompt">${escapeHTML(q.question)}</div>
+  <div class="check-opts" id="pOpts">
+    ${q.options.map((o,oi)=>`<button class="opt-btn" data-oi="${oi}">${escapeHTML(o)}</button>`).join('')}
+  </div>
+  <div id="pFeedback"></div>
+  <div class="flex gap12 mt20">
+    <button class="btn btn-primary hidden" id="nextQBtn">${p.index+1>=p.total ? 'See Results →' : 'Next Question →'}</button>
+  </div>`;
+}
+function bindPracticeRun(){
+  const p = state.practice;
+  if(!p || p.loading || !p.current) return;
+  document.querySelectorAll('#pOpts .opt-btn').forEach(b=>{
+    b.onclick = async ()=>{
+      if(p.answered) return;
+      p.answered = true;
+      const oi = +b.dataset.oi;
+      const correct = oi === p.current.correctIndex;
+      document.querySelectorAll('#pOpts .opt-btn').forEach(x=>x.disabled=true);
+      b.classList.add(correct?'correct':'wrong');
+      if(!correct) document.querySelectorAll('#pOpts .opt-btn')[p.current.correctIndex].classList.add('correct');
+      p.log.push({question:p.current.question, correct, difficulty:p.difficulty, skill:p.current.skill});
+      state.history.push({subject:p.subjId, topic:p.topicId, difficulty:p.difficulty, correct});
+      if(correct) p.correctCount++;
+      const fbEl = document.getElementById('pFeedback');
+      fbEl.innerHTML = `<div class="feedback ${correct?'good':'bad'}">${correct?'Correct! ':'Not quite. '}${escapeHTML(p.current.explanation)}</div>`;
+      document.getElementById('nextQBtn').classList.remove('hidden');
+
+      // adaptive difficulty
+      const recent = p.log.slice(-3);
+      const recentCorrect = recent.filter(l=>l.correct).length;
+      if(recent.length>=2 && recentCorrect===recent.length && p.difficulty!=='Hard'){
+        p.difficulty = p.difficulty==='Easy' ? 'Medium' : 'Hard';
+      } else if(recent.length>=2 && recentCorrect===0 && p.difficulty!=='Easy'){
+        p.difficulty = p.difficulty==='Hard' ? 'Medium' : 'Easy';
+      }
+
+      if(!correct){
+        // mistake analysis (async, appended below feedback)
+        try{
+          const sys = `You are the Mistake Analyzer module inside Tuklas. A student answered a practice question incorrectly. Diagnose briefly and supportively. Return STRICT JSON only: {"understood":"what they seem to understand","misunderstood":"what went wrong","misconception":"the likely misconception, or empty string","simpleExplanation":"one short re-explanation"}`;
+          const diag = await askClaude(sys, `Question: ${p.current.question}\nOptions: ${p.current.options.join(' | ')}\nCorrect answer: ${p.current.options[p.current.correctIndex]}\nStudent chose: ${p.current.options[oi]}\nTopic: ${p.topicName}`, {json:true, maxTokens:400});
+          fbEl.innerHTML += `<div class="diag-card"><h5>What likely happened</h5><p><b>Understood:</b> ${escapeHTML(diag.understood)}</p><p class="mt8"><b>Misunderstood:</b> ${escapeHTML(diag.misunderstood)}</p>${diag.misconception?`<p class="mt8"><b>Likely misconception:</b> ${escapeHTML(diag.misconception)}</p>`:''}<p class="mt8">${escapeHTML(diag.simpleExplanation)}</p></div>`;
+        }catch(e){}
+      }
+    };
+  });
+  const nextBtn = document.getElementById('nextQBtn');
+  if(nextBtn) nextBtn.onclick = ()=>{
+    p.index++;
+    if(p.index>=p.total){ finishPractice(); } else { fetchNextQuestion(); }
+  };
+}
+function finishPractice(){
+  const p = state.practice;
+  state.quiz = {subjName:p.subjName, topicName:p.topicName, log:p.log, correctCount:p.correctCount, total:p.total};
+  // update local mastery estimate
+  const subj = state.mastery.find(s=>s.id===p.subjId);
+  const top = subj && subj.topics.find(t=>t.id===p.topicId);
+  if(top){
+    const acc = Math.round((p.correctCount/p.total)*100);
+    top.mastery = Math.round(top.mastery*0.6 + acc*0.4);
+  }
+  go('quiz-result');
+}
+function startQuizFromLesson(){
+  const L = state.lesson;
+  state.practice = {subjId:'math', topicId:'integers', subjName:L.subject, topicName:L.title, difficulty:'Medium', total:L.quiz.length, index:0, correctCount:0, log:[], current:L.quiz[0], lessonQuestions:L.quiz, answered:false, loading:false, _lessonQuiz:true};
+  go('practice-run');
+}
+
+/* ================= QUIZ RESULT ================= */
+function viewQuizResult(){
+  const q = state.quiz;
+  if(!q) return `<div class="empty">No results yet.</div>`;
+  const pct = Math.round((q.correctCount/q.total)*100);
+  const weak = {};
+  q.log.forEach(l=>{ if(!l.correct){ weak[l.skill||q.topicName] = (weak[l.skill||q.topicName]||0)+1; } });
+  const weakList = Object.keys(weak);
+  return `
+  <div class="hi headline mb8">Results — ${q.topicName}</div>
+  <div class="grid-2">
+    <div class="card">
+      <div style="text-align:center; padding:20px 0;">
+        <div style="font-family:'Sora'; font-weight:800; font-size:48px; color:${pct>=70?'var(--leaf)':'var(--brick)'};">${pct}%</div>
+        <div class="muted">${q.correctCount} of ${q.total} correct</div>
+      </div>
+    </div>
+    <div class="card">
+      <b class="small">Strengths</b>
+      <ul>${q.log.filter(l=>l.correct).slice(0,3).map(l=>`<li class="small mt8">${l.question.slice(0,60)}${l.question.length>60?'…':''}</li>`).join('') || '<li class="small mt8">Keep practicing to build strengths here.</li>'}</ul>
+      <b class="small mt14" style="display:block;">Weak skills</b>
+      <ul>${weakList.length? weakList.map(w=>`<li class="small mt8">${w}</li>`).join('') : '<li class="small mt8">No major weak spots this round.</li>'}</ul>
+    </div>
+  </div>
+  <div class="card mt20">
+    <b class="small">Recommended review</b>
+    <p class="muted small mt8">${pct>=80 ? 'Strong result — try a harder difficulty next time, or move to a new topic.' : 'Review the flagged skill(s) above, then retry a short practice set before the next quiz.'}</p>
+    <div class="flex gap12 mt14">
+      <button class="btn btn-primary btn-sm" id="reviewBtn">Review weak skills</button>
+      <button class="btn btn-ghost btn-sm" data-nav2="student-home">Back to Home</button>
+    </div>
+  </div>`;
+}
+function bindQuizResult(){
+  document.querySelectorAll('[data-nav2]').forEach(el=>el.onclick=(e)=>{e.preventDefault(); go(el.dataset.nav2);});
+  const rb = document.getElementById('reviewBtn');
+  if(rb) rb.onclick = ()=>go('practice-config');
+}
+
+/* ================= PROGRESS ================= */
+function levelFor(m){
+  if(m>=90) return ['Mastered','#DCEFE6','#1D5A41'];
+  if(m>=80) return ['Proficient','#E4F0E8','#2F7A5D'];
+  if(m>=60) return ['Practicing','#FDF1DA','#8A5A0F'];
+  if(m>=40) return ['Developing','#FBE8DD','#8A4A0F'];
+  return ['Beginning','#F7DCD5','#8A3016'];
+}
+function viewProgress(){
+  return `
+  <div class="hi headline mb14">Progress &amp; Mastery</div>
+  ${state.mastery.map(s=>`
+    <h3 class="mt26 mb14">${s.name}</h3>
+    ${s.topics.map(t=>{
+      const [lvl,bg,fg] = levelFor(t.mastery);
+      const understanding = Math.min(100, t.mastery + 4);
+      const accuracy = Math.max(0, t.mastery - 6);
+      const application = Math.max(0, t.mastery - 10);
+      const consistency = Math.min(100, t.mastery + 2);
+      return `
+      <div class="mastery-topic">
+        <div class="mt-head">
+          <span class="name">${t.name}</span>
+          <span class="level-tag" style="background:${bg}; color:${fg};">${lvl} · ${t.mastery}%</span>
+        </div>
+        <div class="trailbar">${Array.from({length:10}).map((_,i)=> `<div class="seg ${i < Math.round(t.mastery/10) ? 'fill':''}"></div>`).join('')}</div>
+        <div class="sub-metrics">
+          <div class="sub-metric">Understanding<span class="v">${understanding}%</span></div>
+          <div class="sub-metric">Accuracy<span class="v">${accuracy}%</span></div>
+          <div class="sub-metric">Application<span class="v">${application}%</span></div>
+          <div class="sub-metric">Consistency<span class="v">${consistency}%</span></div>
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('')}
+  <p class="muted small mt20">Mastery updates from repeated practice and quiz performance over time — one quiz won't move a topic to "Mastered."</p>`;
+}
+
+/* ================= TEACHER DASHBOARD ================= */
+function viewTeacherDashboard(){
+  return `
+  <div class="topbar"><div><div class="hi headline">Grade 7 Mathematics</div><div class="muted small">42 students · 3 published lessons</div></div>
+  <button class="btn btn-primary btn-sm" data-nav2="teacher-create">+ Create Lesson</button></div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="lab">Average Mastery</div><div class="val">76%</div><div class="delta up">▲ 4% this month</div></div>
+    <div class="kpi"><div class="lab">Average Quiz Score</div><div class="val">78%</div><div class="delta up">▲ 2%</div></div>
+    <div class="kpi"><div class="lab">Most Difficult Topic</div><div class="val" style="font-size:19px;">Fractions</div><div class="delta down">61% average</div></div>
+    <div class="kpi"><div class="lab">Most Improved Topic</div><div class="val" style="font-size:19px;">Integers</div><div class="delta up">+18%</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title" style="margin-top:0;"><h3>Topic Mastery — Class Average</h3></div>
+      ${SUBJECTS[0].topics.map(t=>`<div class="bar-row"><span class="lab">${t.name}</span><div class="bar-track"><div class="bar-fill" style="width:${t.mastery}%; background:${t.mastery>=70?'var(--leaf)':t.mastery>=50?'var(--accent)':'var(--brick)'};"></div></div><span class="pct">${t.mastery}%</span></div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0;"><h3>Students Needing Support</h3></div>
+      ${['Juan D. — Fractions 42%','Ana R. — Geometry 38%','Leo M. — Fractions 51%'].map(s=>`<div class="stat-row"><span>${s.split(' — ')[0]}</span><span class="n" style="color:var(--brick);">${s.split(' — ')[1]}</span></div>`).join('')}
+      <div class="section-title"><h3>Most Improved Students</h3></div>
+      ${['Rina P. — +22%','Carlo T. — +19%'].map(s=>`<div class="stat-row"><span>${s.split(' — ')[0]}</span><span class="n" style="color:var(--leaf);">${s.split(' — ')[1]}</span></div>`).join('')}
+    </div>
+  </div>
+  <div class="card mt20">
+    <div class="section-title" style="margin-top:0;"><h3>Lessons</h3></div>
+    <div class="lesson-row"><div class="swatch" style="background:var(--leaf);">∑</div><div class="meta"><div class="t">Adding Integers</div><div class="s">Published · Avg score 82%</div></div><span class="pill">Live</span></div>
+    <div class="lesson-row"><div class="swatch" style="background:var(--accent); color:var(--accent-ink);">⅟</div><div class="meta"><div class="t">Fractions — Unlike Denominators</div><div class="s">Draft — awaiting your review</div></div><span class="pill">Draft</span></div>
+  </div>`;
+}
+function bindTeacherDashboard(){
+  document.querySelectorAll('[data-nav2]').forEach(el=>el.onclick=(e)=>{e.preventDefault(); go(el.dataset.nav2);});
+}
+
+/* ================= TEACHER CREATE LESSON ================= */
+function viewTeacherCreate(){
+  const step = state.teacherFlow ? state.teacherFlow.step : 0;
+  return `
+  <div class="hi headline mb14">Create Lesson</div>
+  <div class="stepbar">${[0,1,2].map(i=>`<div class="s ${i<=step?'on':''}"></div>`).join('')}</div>
+  <div id="tcContent">${teacherStepBody(step)}</div>`;
+}
+function teacherStepBody(step){
+  if(step===0){
+    const d = DEMOS.integers;
+    return `
+    <div class="vurl-box">
+      <p class="muted small mb14">Paste a YouTube link and transcript, or upload a file (uploads are prepared for a future release). For this preview, transcript text is required to generate content.</p>
+      <div class="field"><label>YouTube lesson link</label><input type="text" id="tUrl" value="${state.teacherFlow?.url||''}"></div>
+      <div class="field"><label>Transcript</label><textarea id="tTranscript" rows="7">${state.teacherFlow?.transcript||''}</textarea></div>
+      <div class="flex gap12">
+        <button class="btn btn-primary" id="tAnalyze">Analyze →</button>
+        <button class="btn btn-ghost btn-sm" id="tDemo">Use demo transcript</button>
+      </div>
+      <div id="tStatus"></div>
+    </div>`;
+  }
+  if(step===1){
+    const L = state.teacherFlow.lesson;
+    return `
+    <p class="muted small mb14">Review and edit every AI-generated section before saving. Nothing reaches students until you publish.</p>
+    <div class="editable-section"><h4>Title / Subject / Grade</h4>
+      <input type="text" id="edTitle" value="${L.title}">
+      <div class="flex gap8 mt8"><input type="text" id="edSubject" value="${L.subject}"><input type="text" id="edGrade" value="${L.gradeLevel}"></div>
+    </div>
+    <div class="editable-section"><h4>Objectives</h4><textarea id="edObjectives">${L.objectives.join('\n')}</textarea></div>
+    ${L.sections.map((s,i)=>`<div class="editable-section"><h4>${s.heading} <span class="src-tag source">Source</span></h4><textarea data-sec="${i}" class="secSource">${s.sourceExplanation}</textarea>${s.aiExplanation?`<div class="mt8"><span class="src-tag ai">AI Additional</span><textarea data-sec-ai="${i}" class="secAi">${s.aiExplanation}</textarea></div>`:''}</div>`).join('')}
+    <div class="editable-section"><h4>Common Mistakes</h4><textarea id="edMistakes">${L.commonMistakes.join('\n')}</textarea></div>
+    <div class="editable-section"><h4>Quiz (${L.quiz.length} questions)</h4>
+      ${L.quiz.map((q,i)=>`<p class="small mt8"><b>${i+1}.</b> ${q.question} <span class="muted">→ ${q.options[q.correctIndex]}</span></p>`).join('')}
+    </div>
+    <div class="flex gap12 mt20">
+      <button class="btn btn-ghost" id="tPreview">Preview as student</button>
+      <button class="btn btn-ghost" id="tSaveDraft">Save Draft</button>
+      <button class="btn btn-accent" id="tPublish">Publish to Class</button>
+    </div>`;
+  }
+  if(step===2){
+    return `<div class="card" style="text-align:center; padding:50px 20px;">
+      <h3 class="mb14">✓ ${state.teacherFlow.published ? 'Published' : 'Saved as draft'}</h3>
+      <p class="muted">${state.teacherFlow.published ? "Students in Grade 7 Mathematics can now see this lesson." : "Your draft is saved. Publish it whenever you're ready."}</p>
+      <button class="btn btn-primary mt20" data-nav2="teacher-dashboard">Back to Dashboard</button>
+    </div>`;
+  }
+}
+function bindTeacherCreate(){
+  const step = state.teacherFlow ? state.teacherFlow.step : 0;
+  document.querySelectorAll('[data-nav2]').forEach(el=>el.onclick=(e)=>{e.preventDefault(); go(el.dataset.nav2);});
+  if(step===0){
+    document.getElementById('tDemo').onclick = ()=>{
+      document.getElementById('tUrl').value = DEMOS.integers.url;
+      document.getElementById('tTranscript').value = DEMOS.integers.transcript;
+    };
+    document.getElementById('tAnalyze').onclick = async ()=>{
+      const transcript = document.getElementById('tTranscript').value.trim();
+      const url = document.getElementById('tUrl').value.trim();
+      const statusEl = document.getElementById('tStatus');
+      if(!transcript){ statusEl.innerHTML = `<div class="notice">Paste a transcript, or click "Use demo transcript".</div>`; return; }
+      statusEl.innerHTML = `<div class="loading-line"><span class="spinner"></span> Generating objectives, vocabulary, examples, questions and a quiz…</div>`;
+      try{
+        const sys = `You are the Lesson Generator module inside Tuklas, generating a full teacher-reviewable lesson from a video transcript. Return STRICT JSON only, no markdown fences, in this exact shape:
+{"title":"","subject":"","gradeLevel":"","estimatedMinutes":15,"objectives":["",""],"vocabulary":[{"term":"","definition":""}],"sections":[{"heading":"Let's Understand","sourceExplanation":"","aiExplanation":""},{"heading":"Example","sourceExplanation":"","aiExplanation":"an ADDITIONAL example not in the transcript"}],"checks":[{"question":"","options":["A","B","C","D"],"correctIndex":0,"explanation":""}],"commonMistakes":["",""],"keyTakeaways":["",""],"quiz":[{"question":"","options":["A","B","C","D"],"correctIndex":0,"explanation":"","skill":""}]}
+Ground sourceExplanation strictly in the transcript. Produce 3-4 sections, 2-3 checks, 5 quiz questions.`;
+        const lesson = await askClaude(sys, `Transcript:\n${transcript}`, {json:true, maxTokens:3000});
+        state.teacherFlow = {step:1, url, transcript, lesson};
+        go('teacher-create');
+      }catch(err){
+        statusEl.innerHTML = `<div class="notice">Generation failed (${err.message}). Try again.</div>`;
+      }
+    };
+  }
+  if(step===1){
+    document.getElementById('tPreview').onclick = ()=>{
+      // sync edits then preview
+      syncTeacherEdits();
+      state.lesson = JSON.parse(JSON.stringify(state.teacherFlow.lesson));
+      state.lesson._checkState = {};
+      go('lesson-view');
+    };
+    document.getElementById('tSaveDraft').onclick = ()=>{ syncTeacherEdits(); state.teacherFlow.step=2; state.teacherFlow.published=false; go('teacher-create'); toast('Draft saved.'); };
+    document.getElementById('tPublish').onclick = ()=>{ syncTeacherEdits(); state.teacherFlow.step=2; state.teacherFlow.published=true; go('teacher-create'); toast('Lesson published to class.'); };
+  }
+}
+function syncTeacherEdits(){
+  const L = state.teacherFlow.lesson;
+  const t = document.getElementById('edTitle'); if(t) L.title = t.value;
+  const sub = document.getElementById('edSubject'); if(sub) L.subject = sub.value;
+  const gr = document.getElementById('edGrade'); if(gr) L.gradeLevel = gr.value;
+  const obj = document.getElementById('edObjectives'); if(obj) L.objectives = obj.value.split('\n').filter(Boolean);
+  document.querySelectorAll('.secSource').forEach(ta=>{ L.sections[+ta.dataset.sec].sourceExplanation = ta.value; });
+  document.querySelectorAll('.secAi').forEach(ta=>{ L.sections[+ta.dataset.secAi].aiExplanation = ta.value; });
+  const mist = document.getElementById('edMistakes'); if(mist) L.commonMistakes = mist.value.split('\n').filter(Boolean);
+}
+
+/* ---------------- init ---------------- */
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+pg_hba.conf.safe
+.env
+.env.*
+!.env.example
+*.log
+.neon
+
+.vercel
+.env*

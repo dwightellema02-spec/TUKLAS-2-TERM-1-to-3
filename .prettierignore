@@ -1,0 +1,10 @@
+# Generated and dependency artifacts
+.next/
+node_modules/
+coverage/
+out/
+package-lock.json
+next-env.d.ts
+
+# Preserved Phase 0 prototype
+public/prototype/
