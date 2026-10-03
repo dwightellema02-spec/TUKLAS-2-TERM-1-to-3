@@ -8,7 +8,16 @@ import {
 import { PracticeService } from '../../../../services/practice.service';
 import { AppError } from '../../../../lib/errors';
 
-const sessionSchema = z.object({
+/** Practice from the lesson's own question bank (works without an AI key). */
+const lessonBankSchema = z.object({
+  source: z.literal('LESSON_BANK'),
+  lessonId: z.string().trim().min(1),
+  total: z.number().int().positive().max(50).default(10),
+});
+
+/** AI-generated practice: questions are generated one at a time afterwards. */
+const aiSessionSchema = z.object({
+  source: z.literal('AI').optional(),
   lessonId: z.string().trim().min(1).optional(),
   subject: z.string().trim().min(1).max(100),
   topic: z.string().trim().min(1).max(200),
@@ -17,17 +26,36 @@ const sessionSchema = z.object({
   total: z.number().int().positive().max(200),
 });
 
-export async function POST(request: Request) {
-  const session = await getSessionFromRequest(request);
+const sessionSchema = z.union([lessonBankSchema, aiSessionSchema]);
 
+async function currentStudent(request: Request) {
+  const session = await getSessionFromRequest(request);
   if (!session) {
-    return jsonError('Authentication required.', 401);
+    return { ok: false as const, response: jsonError('Authentication required.', 401) };
   }
 
   const user = await db.user.findUnique({ where: { id: session.sub } });
   if (!user || user.role !== 'STUDENT') {
-    return jsonError('Only students can start practice sessions.', 403);
+    return {
+      ok: false as const,
+      response: jsonError('Only students can use practice sessions.', 403),
+    };
   }
+  return { ok: true as const, user };
+}
+
+export async function GET(request: Request) {
+  const auth = await currentStudent(request);
+  if (!auth.ok) return auth.response;
+
+  const sessions = await PracticeService.listRecentSessions(auth.user.id, 10);
+  return jsonSuccess({ sessions });
+}
+
+export async function POST(request: Request) {
+  const auth = await currentStudent(request);
+  if (!auth.ok) return auth.response;
+  const user = auth.user;
 
   try {
     const body = await request.json();
@@ -38,6 +66,14 @@ export async function POST(request: Request) {
         parsed.error.issues[0]?.message ?? 'Invalid practice session payload.',
         400,
       );
+    }
+
+    if (parsed.data.source === 'LESSON_BANK') {
+      const practiceSession = await PracticeService.startLessonBankSession(user.id, {
+        lessonId: parsed.data.lessonId,
+        total: parsed.data.total,
+      });
+      return jsonSuccess({ session: practiceSession }, 201);
     }
 
     const practiceSession = await PracticeService.startSession(

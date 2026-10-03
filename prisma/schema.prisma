@@ -485,6 +485,7 @@ model QuizQuestion {
   skillRecord         Skill?             @relation(fields: [skillId], references: [id], onDelete: SetNull)
   assessment          Assessment?        @relation(fields: [assessmentId], references: [id], onDelete: SetNull)
   assessmentAnswers   AssessmentAnswer[]
+  practiceCopies      PracticeQuestion[]
 
   @@unique([lessonId, position])
   @@index([lessonId])
@@ -532,6 +533,10 @@ model PracticeSession {
 model PracticeQuestion {
   id                  String             @id @default(cuid())
   sessionId           String
+  /// Order within the session (bank-based sessions are served in this order).
+  position            Int                @default(0)
+  /// The lesson-bank question this was copied from (null for AI-generated questions).
+  quizQuestionId      String?
   question            String
   questionType        QuestionType       @default(MULTIPLE_CHOICE)
   options             Json
@@ -550,8 +555,11 @@ model PracticeQuestion {
   lesson              Lesson?            @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   learningTarget      LearningObjective? @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
   skillRecord         Skill?             @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  quizQuestion        QuizQuestion?      @relation(fields: [quizQuestionId], references: [id], onDelete: SetNull)
   answer              PracticeAnswer?
 
+  @@index([quizQuestionId])
+  @@index([sessionId, position])
   @@index([sessionId, createdAt])
   @@index([lessonId])
   @@index([learningObjectiveId, skillId])

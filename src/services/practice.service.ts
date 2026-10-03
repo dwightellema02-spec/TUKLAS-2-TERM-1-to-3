@@ -3,6 +3,11 @@
  *
  * Encapsulates practice session lifecycle, answer recording, session completion,
  * and adaptive difficulty calculations within database transactions.
+ *
+ * Two kinds of session exist:
+ *  - AI sessions: questions are generated one at a time by the AI (needs an AI key).
+ *  - LESSON_BANK sessions: questions are copied from the lesson's own teacher-authored
+ *    practice bank, so practice works without any AI.
  */
 
 import { db } from '../server/db';
@@ -17,6 +22,15 @@ export type CreatePracticeSessionInput = {
   type?: 'PRACTICE' | 'LESSON_QUIZ';
   total: number;
 };
+
+export type StartLessonBankSessionInput = {
+  lessonId: string;
+  /** Maximum number of questions (the session uses fewer if the bank is smaller). */
+  total: number;
+};
+
+/** Question types that are answered by choosing an option. */
+const OPTION_TYPES = ['MULTIPLE_CHOICE', 'TRUE_FALSE'] as const;
 
 export class PracticeService {
   /**
@@ -43,6 +57,94 @@ export class PracticeService {
         type: input.type ?? 'PRACTICE',
         total: input.total,
       },
+    });
+  }
+
+  /**
+   * Starts a practice session from the lesson's own practice bank (teacher-authored
+   * questions that are not part of an assessment).
+   *
+   * Which questions are served: items the student got wrong most recently first, then
+   * items they have never seen, then items they already answered correctly; ties are
+   * broken by the lesson's own question order. Nothing here needs an AI.
+   */
+  static async startLessonBankSession(studentId: string, input: StartLessonBankSessionInput) {
+    const lesson = await db.lesson.findFirst({
+      where: { id: input.lessonId, status: 'PUBLISHED' },
+      select: { id: true, title: true, subject: true },
+    });
+    if (!lesson) {
+      throw new NotFoundError('Lesson not found.');
+    }
+
+    const bank = await db.quizQuestion.findMany({
+      where: {
+        lessonId: lesson.id,
+        assessmentId: null,
+        questionType: { in: [...OPTION_TYPES] },
+      },
+      orderBy: { position: 'asc' },
+    });
+    if (bank.length === 0) {
+      throw new ConflictError('This lesson has no practice questions yet.');
+    }
+
+    // How this student has done on each bank question before (via their earlier copies).
+    const history = await db.practiceAnswer.findMany({
+      where: {
+        practiceQuestion: {
+          quizQuestionId: { in: bank.map((question) => question.id) },
+          session: { studentId },
+        },
+      },
+      select: { correct: true, answeredAt: true, practiceQuestion: { select: { quizQuestionId: true } } },
+      orderBy: { answeredAt: 'asc' },
+    });
+    const lastResult = new Map<string, boolean>();
+    for (const entry of history) {
+      const sourceId = entry.practiceQuestion?.quizQuestionId;
+      if (sourceId) lastResult.set(sourceId, entry.correct); // later answers overwrite earlier ones
+    }
+    const priority = (id: string) => (lastResult.get(id) === false ? 0 : lastResult.has(id) ? 2 : 1);
+
+    const chosen = [...bank]
+      .sort((a, b) => priority(a.id) - priority(b.id) || a.position - b.position)
+      .slice(0, input.total);
+
+    return db.$transaction(async (tx) => {
+      const session = await tx.practiceSession.create({
+        data: {
+          studentId,
+          lessonId: lesson.id,
+          subject: lesson.subject,
+          topic: lesson.title,
+          difficulty: 'Mixed',
+          type: 'PRACTICE',
+          total: chosen.length,
+        },
+      });
+
+      await tx.practiceQuestion.createMany({
+        data: chosen.map((question, index) => ({
+          sessionId: session.id,
+          position: index,
+          quizQuestionId: question.id,
+          question: question.question,
+          questionType: question.questionType,
+          options: question.options as never,
+          correctIndex: question.correctIndex,
+          correctAnswer: question.correctAnswer,
+          skill: question.skill,
+          explanation: question.explanation,
+          lessonId: lesson.id,
+          learningObjectiveId: question.learningObjectiveId,
+          skillId: question.skillId,
+          purpose: 'REINFORCEMENT' as const,
+          difficulty: question.difficulty,
+        })),
+      });
+
+      return session;
     });
   }
 
@@ -113,6 +215,23 @@ export class PracticeService {
         },
       });
 
+      // Every wrong answer becomes a reviewable mistake for the student. The category is
+      // generic until the mistake engine classifies it (master plan §12).
+      if (!correct) {
+        await tx.mistakeRecord.create({
+          data: {
+            studentId,
+            lessonId: practiceSession.lessonId,
+            questionId: question.id,
+            practiceSessionId: practiceSession.id,
+            submittedAnswer: options.data[selectedIndex],
+            correctReference: options.data[question.correctIndex] ?? null,
+            category: 'CONCEPTUAL',
+            analysis: question.explanation,
+          },
+        });
+      }
+
       const nextCorrect = practiceSession.correct + (correct ? 1 : 0);
       const isNowCompleted = answerCount + 1 >= practiceSession.total;
 
@@ -145,5 +264,76 @@ export class PracticeService {
     }
 
     return session;
+  }
+
+  /**
+   * The view of a session that is safe to send to the student's browser: the answer key
+   * and explanation of a question are included only once that question has been answered.
+   */
+  static async getSessionForStudent(sessionId: string, studentId: string) {
+    const session = await db.practiceSession.findFirst({
+      where: { id: sessionId, studentId },
+      include: {
+        lesson: { select: { id: true, title: true } },
+        answers: true,
+        questions: { orderBy: [{ position: 'asc' }, { createdAt: 'asc' }] },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundError('Practice session not found.');
+    }
+
+    const answerByQuestion = new Map(
+      session.answers.filter((a) => a.questionId).map((a) => [a.questionId as string, a]),
+    );
+
+    return {
+      id: session.id,
+      lesson: session.lesson,
+      topic: session.topic,
+      total: session.total,
+      correct: session.correct,
+      answeredCount: session.answers.length,
+      startedAt: session.startedAt,
+      completedAt: session.completedAt,
+      questions: session.questions.map((question) => {
+        const answer = answerByQuestion.get(question.id);
+        return {
+          id: question.id,
+          position: question.position,
+          question: question.question,
+          options: question.options,
+          skill: question.skill,
+          difficulty: question.difficulty,
+          answered: answer
+            ? {
+                selectedIndex: answer.selectedIndex,
+                correct: answer.correct,
+                correctIndex: answer.correctIndex,
+                explanation: answer.explanation,
+              }
+            : null,
+        };
+      }),
+    };
+  }
+
+  /** The student's most recent sessions (for the dashboard). */
+  static async listRecentSessions(studentId: string, limit = 5) {
+    return db.practiceSession.findMany({
+      where: { studentId },
+      orderBy: { startedAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        topic: true,
+        total: true,
+        correct: true,
+        startedAt: true,
+        completedAt: true,
+        lesson: { select: { id: true, title: true } },
+      },
+    });
   }
 }
