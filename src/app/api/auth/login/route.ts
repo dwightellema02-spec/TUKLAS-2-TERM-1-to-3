@@ -13,6 +13,8 @@ import {
 import {
   enforceRateLimit,
   getRequestAddress,
+  LOCKOUT_MS,
+  MAX_FAILED_LOGINS,
   RateLimitError,
 } from '../../../../server/rate-limit';
 import { AuthAuditLogger } from '../../../../lib/auth/audit';
@@ -41,16 +43,47 @@ export async function POST(request: Request) {
 
     const { email, password } = parsed.data;
     const normalizedEmail = email.toLowerCase();
-    enforceRateLimit(
-      `login:${getRequestAddress(request)}:${normalizedEmail}`,
-      10,
-    );
+    const ip = getRequestAddress(request);
+    // Two independent limits. The address comes from the trusted proxy position (see
+    // getRequestAddress), and the per-account limit does not depend on any header at
+    // all, so rotating X-Forwarded-For cannot multiply an attacker's guesses.
+    enforceRateLimit(`login-ip:${ip}`, 60);
+    enforceRateLimit(`login-account:${normalizedEmail}`, 20);
 
     const user = await db.user.findUnique({
       where: { email: normalizedEmail },
     });
 
-    if (!user || !user.isActive || !(await verifyPassword(password, user.passwordHash))) {
+    // A locked account refuses every password attempt (even a correct one) until the
+    // lock expires, so the lock cannot be used as a password oracle.
+    if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      AuthAuditLogger.log({
+        event: 'LOGIN_FAILURE',
+        email: normalizedEmail,
+        ip,
+        success: false,
+        reason: 'ACCOUNT_LOCKED',
+      });
+      return jsonError('Too many failed attempts. Please try again later.', 429);
+    }
+
+    const passwordOk =
+      !!user && user.isActive && (await verifyPassword(password, user.passwordHash));
+
+    if (!user || !passwordOk) {
+      if (user && user.isActive) {
+        const updated = await db.user.update({
+          where: { id: user.id },
+          data: { failedLoginCount: { increment: 1 } },
+          select: { failedLoginCount: true },
+        });
+        if (updated.failedLoginCount >= MAX_FAILED_LOGINS) {
+          await db.user.update({
+            where: { id: user.id },
+            data: { lockedUntil: new Date(Date.now() + LOCKOUT_MS), failedLoginCount: 0 },
+          });
+        }
+      }
       AuthAuditLogger.log({
         event: 'LOGIN_FAILURE',
         email: normalizedEmail,
@@ -59,6 +92,13 @@ export async function POST(request: Request) {
         reason: !user ? 'USER_NOT_FOUND' : !user.isActive ? 'ACCOUNT_INACTIVE' : 'INVALID_PASSWORD',
       });
       return jsonError('Invalid email or password.', 401);
+    }
+
+    if (user.failedLoginCount > 0 || user.lockedUntil) {
+      await db.user.update({
+        where: { id: user.id },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
     }
 
     if (passwordHashNeedsUpgrade(user.passwordHash)) {

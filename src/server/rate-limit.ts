@@ -1,4 +1,5 @@
 const WINDOW_MS = 60_000;
+const SWEEP_THRESHOLD = 5_000;
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
 
 export class RateLimitError extends Error {
@@ -10,6 +11,14 @@ export class RateLimitError extends Error {
 
 export function enforceRateLimit(key: string, limit: number) {
   const now = Date.now();
+
+  // Keep memory bounded: attackers can mint unlimited distinct keys.
+  if (requestCounts.size > SWEEP_THRESHOLD) {
+    for (const [existingKey, entry] of requestCounts) {
+      if (entry.resetAt <= now) requestCounts.delete(existingKey);
+    }
+  }
+
   const current = requestCounts.get(key);
 
   if (!current || current.resetAt <= now) {
@@ -24,6 +33,40 @@ export function enforceRateLimit(key: string, limit: number) {
   current.count += 1;
 }
 
-export function getRequestAddress(request: Request) {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+/** Test helper: forget all in-memory counters. */
+export function resetRateLimits() {
+  requestCounts.clear();
 }
+
+const IP_PATTERN = /^[0-9a-fA-F:.]{2,45}$/;
+
+/**
+ * Returns the client address as seen by the nearest TRUSTED proxy.
+ *
+ * Each proxy appends the address it received the request from to X-Forwarded-For, so
+ * entries to the LEFT of the trusted proxies are whatever the client chose to send and
+ * must be ignored. TRUSTED_PROXY_HOPS is the number of proxies you control in front of
+ * the app (default 1, e.g. Vercel or a single nginx). If fewer entries than hops are
+ * present, or the value is not an IP address, the address is "unknown".
+ */
+export function getRequestAddress(request: Request) {
+  const header = request.headers.get('x-forwarded-for');
+  if (!header) return 'unknown';
+
+  const configured = Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? '1', 10);
+  const hops = Number.isInteger(configured) && configured >= 1 ? configured : 1;
+
+  const entries = header
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (entries.length < hops) return 'unknown';
+
+  const candidate = entries[entries.length - hops];
+  return IP_PATTERN.test(candidate) ? candidate : 'unknown';
+}
+
+/** Consecutive failed password attempts before an account is temporarily locked. */
+export const MAX_FAILED_LOGINS = 5;
+/** How long a locked account refuses all password attempts. */
+export const LOCKOUT_MS = 15 * 60_000;

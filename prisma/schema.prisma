@@ -79,6 +79,8 @@ model User {
   role                UserRole
   displayName         String
   isActive            Boolean              @default(true)
+  failedLoginCount    Int                  @default(0)
+  lockedUntil         DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   studentProfile      StudentProfile?
