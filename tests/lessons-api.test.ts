@@ -12,6 +12,9 @@ import { GET as getLesson } from '../src/app/api/lessons/[id]/route';
 const emailFor = (suffix: string) =>
   `lesson-test-${suffix}-${randomUUID()}@example.com`;
 
+// High position keeps this fixture clear of seeded units and of other test files that reorder units.
+const TEST_UNIT_POSITION = 9001;
+
 async function curriculumUnit(subjectCode: string, subjectName: string) {
   const subject = await db.subject.upsert({
     where: { code: subjectCode },
@@ -41,8 +44,8 @@ async function curriculumUnit(subjectCode: string, subjectName: string) {
   const id = `test-unit-${subjectCode.toLowerCase()}`;
   return db.unit.upsert({
     where: { id },
-    update: { termId: term.id, position: 1 },
-    create: { id, termId: term.id, title: `Test ${subjectName} Unit`, position: 1 },
+    update: { termId: term.id, position: TEST_UNIT_POSITION },
+    create: { id, termId: term.id, title: `Test ${subjectName} Unit`, position: TEST_UNIT_POSITION },
   });
 }
 

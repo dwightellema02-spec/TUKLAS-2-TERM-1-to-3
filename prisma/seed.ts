@@ -4,6 +4,11 @@ import { hashPassword } from '../src/server/auth';
 
 dotenv.config({ path: '.env.local', override: true });
 
+if (process.env.DB_TARGET === 'test') {
+  if (!process.env.TEST_DATABASE_URL) throw new Error('DB_TARGET=test requires TEST_DATABASE_URL.');
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
+
 const prisma = new PrismaClient();
 
 async function main() {
