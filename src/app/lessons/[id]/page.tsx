@@ -64,6 +64,11 @@ export default function LessonPage() {
   const [progressMessage, setProgressMessage] = useState('');
   const [student, setStudent] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number>>({});
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
+  const [checkResults, setCheckResults] = useState<
+    Record<string, { correct: boolean; explanation: string | null } | { error: string }>
+  >({});
+  const [checkingId, setCheckingId] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -104,6 +109,38 @@ export default function LessonPage() {
       setProgressMessage(status === 'COMPLETED' ? 'Lesson marked complete.' : 'Progress saved.');
     } catch (cause: unknown) {
       setProgressMessage(cause instanceof Error ? cause.message : 'Progress could not be saved.');
+    }
+  }
+
+  // The server grades every knowledge check; the browser only reports what was chosen.
+  async function submitCheck(check: LessonDetail['checks'][number]) {
+    const hasOptions = Array.isArray(check.options) && check.options.length > 0;
+    const body = hasOptions
+      ? { selectedIndex: selectedAnswers[check.id] }
+      : { answer: textAnswers[check.id] ?? '' };
+    if (hasOptions && body.selectedIndex === undefined) {
+      setCheckResults((prev) => ({ ...prev, [check.id]: { error: 'Choose an answer first.' } }));
+      return;
+    }
+    setCheckingId(check.id);
+    try {
+      const response = await fetch(
+        `/api/lessons/${encodeURIComponent(id)}/checks/${encodeURIComponent(check.id)}/answer`,
+        { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Your answer could not be checked.');
+      setCheckResults((prev) => ({
+        ...prev,
+        [check.id]: { correct: payload.data.correct, explanation: payload.data.explanation },
+      }));
+    } catch (cause: unknown) {
+      setCheckResults((prev) => ({
+        ...prev,
+        [check.id]: { error: cause instanceof Error ? cause.message : 'Your answer could not be checked.' },
+      }));
+    } finally {
+      setCheckingId('');
     }
   }
 
@@ -219,6 +256,35 @@ export default function LessonPage() {
                       ))}
                     </ul>
                   )}
+                  {student && !(Array.isArray(check.options) && check.options.length > 0) && (
+                    <input
+                      type="text"
+                      aria-label="Your answer"
+                      value={textAnswers[check.id] ?? ''}
+                      onChange={(event) => setTextAnswers((prev) => ({ ...prev, [check.id]: event.target.value }))}
+                      maxLength={200}
+                    />
+                  )}
+                  {student && (
+                    <button
+                      className="quiet-button"
+                      onClick={() => submitCheck(check)}
+                      disabled={checkingId === check.id}
+                    >
+                      {checkingId === check.id ? 'Checking...' : 'Check answer'}
+                    </button>
+                  )}
+                  {(() => {
+                    const result = checkResults[check.id];
+                    if (!result) return null;
+                    if ('error' in result) return <p role="alert">{result.error}</p>;
+                    return (
+                      <p role="status">
+                        {result.correct ? 'Correct!' : 'Not quite. Try again.'}
+                        {result.correct && result.explanation && <> {renderWithMath(result.explanation)}</>}
+                      </p>
+                    );
+                  })()}
                 </li>
               ))}
             </ol>

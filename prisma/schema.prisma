@@ -73,28 +73,29 @@ enum LessonProgressStatus {
 }
 
 model User {
-  id                String             @id @default(cuid())
-  email             String             @unique
-  passwordHash      String
-  role              UserRole
-  displayName       String
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  studentProfile    StudentProfile?
-  teacherProfile    TeacherProfile?
-  ownedClasses      Class[]            @relation("ClassTeacher")
-  classMemberships  ClassMember[]
-  lessons           Lesson[]           @relation("LessonAuthor")
-  assignments       Assignment[]       @relation("AssignmentStudent")
-  practiceSessions  PracticeSession[]
-  quizAttempts      QuizAttempt[]
-  masteryRecords    MasteryRecord[]
-  chatConversations ChatConversation[]
-  authSessions      AuthSession[]
-  lessonProgress    LessonProgress[]
-  mistakeRecords    MistakeRecord[]
-  aiInteractions    AIInteraction[]
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  passwordHash        String
+  role                UserRole
+  displayName         String
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  studentProfile      StudentProfile?
+  teacherProfile      TeacherProfile?
+  ownedClasses        Class[]              @relation("ClassTeacher")
+  classMemberships    ClassMember[]
+  lessons             Lesson[]             @relation("LessonAuthor")
+  assignments         Assignment[]         @relation("AssignmentStudent")
+  practiceSessions    PracticeSession[]
+  quizAttempts        QuizAttempt[]
+  masteryRecords      MasteryRecord[]
+  chatConversations   ChatConversation[]
+  authSessions        AuthSession[]
+  lessonProgress      LessonProgress[]
+  lessonCheckAttempts LessonCheckAttempt[]
+  mistakeRecords      MistakeRecord[]
+  aiInteractions      AIInteraction[]
 
   @@index([role])
 }
@@ -161,23 +162,23 @@ model ClassMember {
 }
 
 model Lesson {
-  id                String              @id @default(cuid())
+  id                String               @id @default(cuid())
   authorId          String
   title             String
   description       String?
   subject           String
   gradeLevel        String
-  position          Int                 @default(0)
+  position          Int                  @default(0)
   estimatedMinutes  Int?
   sourceTitle       String?
   sourceTranscript  String?
-  status            LessonStatus        @default(DRAFT)
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  status            LessonStatus         @default(DRAFT)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
   publishedAt       DateTime?
   unitId            String?
-  author            User                @relation("LessonAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  unit              Unit?               @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  author            User                 @relation("LessonAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  unit              Unit?                @relation(fields: [unitId], references: [id], onDelete: Restrict)
   sections          LessonSection[]
   contents          LessonContent[]
   sources           LessonSource[]
@@ -187,6 +188,7 @@ model Lesson {
   practiceQuestions PracticeQuestion[]
   vocabulary        LessonVocabulary[]
   checks            LessonCheck[]
+  checkAttempts     LessonCheckAttempt[]
   quizQuestions     QuizQuestion[]
   assignments       Assignment[]
   practiceSessions  PracticeSession[]
@@ -417,27 +419,47 @@ model LessonVocabulary {
 }
 
 model LessonCheck {
-  id                  String             @id @default(cuid())
+  id                  String               @id @default(cuid())
   lessonId            String
   position            Int
   question            String
-  questionType        QuestionType       @default(MULTIPLE_CHOICE)
+  questionType        QuestionType         @default(MULTIPLE_CHOICE)
   options             Json
-  correctIndex        Int                @default(0)
+  correctIndex        Int                  @default(0)
   correctAnswer       String?
   explanation         String
-  points              Int                @default(1)
+  points              Int                  @default(1)
   learningObjectiveId String?
   skillId             String?
-  purpose             QuestionPurpose    @default(INITIAL)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @default(now()) @updatedAt
-  lesson              Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  learningObjective   LearningObjective? @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
-  skill               Skill?             @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  purpose             QuestionPurpose      @default(INITIAL)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  lesson              Lesson               @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  learningObjective   LearningObjective?   @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
+  skill               Skill?               @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  attempts            LessonCheckAttempt[]
 
   @@unique([lessonId, position])
   @@index([lessonId])
+}
+
+/// A student's graded attempt at a lesson knowledge check. Correctness is decided by
+/// the server (never trusted from the client) and drives lesson completion.
+model LessonCheckAttempt {
+  id            String      @id @default(cuid())
+  studentId     String
+  lessonId      String
+  checkId       String
+  selectedIndex Int?
+  answerText    String?
+  correct       Boolean
+  answeredAt    DateTime    @default(now())
+  student       User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson        Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  check         LessonCheck @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, lessonId, correct])
+  @@index([checkId])
 }
 
 model QuizQuestion {

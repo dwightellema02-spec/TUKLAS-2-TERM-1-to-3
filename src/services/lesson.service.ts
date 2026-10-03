@@ -8,7 +8,8 @@
 
 import { db } from '../server/db';
 import { UserRole } from '../types/domain';
-import { AuthorizationError, NotFoundError, ValidationError } from '../lib/errors';
+import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from '../lib/errors';
+import { gradeCheck, type CheckSubmission } from '../server/check-grader';
 import { z } from 'zod';
 import {
   lessonCreateSchema,
@@ -964,6 +965,29 @@ export class LessonService {
       throw new NotFoundError('Lesson not found.');
     }
 
+    // Completion is decided by the server from graded evidence, never by the client's say-so:
+    // every knowledge check in the lesson needs at least one correct, server-graded attempt.
+    if (status === 'COMPLETED') {
+      const checks = await db.lessonCheck.findMany({
+        where: { lessonId },
+        select: { id: true },
+      });
+      if (checks.length > 0) {
+        const solved = await db.lessonCheckAttempt.findMany({
+          where: { studentId, lessonId, correct: true },
+          select: { checkId: true },
+          distinct: ['checkId'],
+        });
+        const solvedIds = new Set(solved.map((attempt) => attempt.checkId));
+        const remaining = checks.filter((check) => !solvedIds.has(check.id)).length;
+        if (remaining > 0) {
+          throw new ConflictError(
+            `Answer all knowledge checks correctly before completing this lesson (${remaining} remaining).`,
+          );
+        }
+      }
+    }
+
     const completedAt = status === 'COMPLETED' ? new Date() : null;
     return db.lessonProgress.upsert({
       where: {
@@ -980,6 +1004,62 @@ export class LessonService {
         completedAt,
       },
     });
+  }
+
+  /**
+   * Grades a student's answer to a knowledge check on the server and records the attempt.
+   * The answer key and explanation are only revealed once the student answers correctly,
+   * so a wrong attempt does not hand over the solution.
+   */
+  static async submitCheckAnswer(
+    lessonId: string,
+    checkId: string,
+    studentId: string,
+    submission: CheckSubmission,
+  ) {
+    const check = await db.lessonCheck.findFirst({
+      where: { id: checkId, lessonId, lesson: { status: 'PUBLISHED' } },
+    });
+    if (!check) {
+      throw new NotFoundError('Knowledge check not found.');
+    }
+
+    const grade = gradeCheck(
+      {
+        questionType: check.questionType,
+        options: check.options,
+        correctIndex: check.correctIndex,
+        correctAnswer: check.correctAnswer,
+      },
+      submission,
+    );
+    if (!grade.valid) {
+      throw new ValidationError(grade.reason);
+    }
+
+    const attempt = await db.lessonCheckAttempt.create({
+      data: {
+        studentId,
+        lessonId,
+        checkId: check.id,
+        selectedIndex: submission.selectedIndex ?? null,
+        answerText: submission.answer ?? null,
+        correct: grade.correct,
+      },
+    });
+
+    // Opening a lesson's checks counts as having started it.
+    await db.lessonProgress.upsert({
+      where: { studentId_lessonId: { studentId, lessonId } },
+      update: { lastActivityAt: new Date() },
+      create: { studentId, lessonId, status: 'IN_PROGRESS' },
+    });
+
+    return {
+      attemptId: attempt.id,
+      correct: grade.correct,
+      explanation: grade.correct ? check.explanation : null,
+    };
   }
 
   /**
