@@ -50,6 +50,49 @@ export function statesValue(text: string, rawValue: string): boolean {
   return new RegExp(`\\b${escapeRegex(value)}\\b`, 'i').test(haystack);
 }
 
+/** The regex source for one numeric token (not part of a larger number or word). */
+function numberToken(value: string): string {
+  if (value.startsWith('-')) return `(?<![\\d.\\w])-\\s?${escapeRegex(value.slice(1))}(?![\\d]|\\.\\d|[\\w])`;
+  return `(?<![\\d.\\-\\w])\\+?${escapeRegex(value)}(?![\\d]|\\.\\d|[\\w])`;
+}
+
+// Words and symbols that introduce a result: "= 7", "is 7", "you get 7", "the answer: 7", "ends up at 7"
+const RESULT_LEAD =
+  '(?:=|≈|equals?|is|are|was|be|gives?|gets?|got|makes?|made|yields?|results?(?:\\s+is)?|answer(?:\\s+is)?|total(?:s)?|sum|product|quotient|difference|comes?\\s+(?:out\\s+)?(?:to|as)|ends?\\s+up(?:\\s+(?:at|with|as))?|lands?\\s+(?:on|at)|arrives?\\s+at|reach(?:es)?|it\'?s)';
+const QUALIFIER = '(?:(?:about|exactly|approximately|just|only|simply)\\s+)?(?:(?:the\\s+number|equal\\s+to)\\s+)?';
+
+/**
+ * Does the reply STATE this value as the answer?
+ *
+ * Merely containing the digit is not enough: a one-digit answer like 1 or 2 shows up in
+ * "Step 1", "hint 2" or "first step" without being the answer, and blocking those would
+ * quietly push students onto automatic hints for no reason.
+ *   - a number counts when it follows a result word or sign ("= 7", "you get 7", "answer: 7"),
+ *     or is described as the answer ("7 is the answer")
+ *   - a number of two or more digits (or a decimal) also counts anywhere, unless it is one of
+ *     the numbers already in the question (the tutor may refer to the student's own numbers)
+ *   - words match anywhere, as before
+ */
+export function statesAnswer(text: string, rawAnswer: string, questionText = ''): boolean {
+  const value = rawAnswer.replace(MINUS, '-').replace(/\s+/g, '').trim();
+  if (!value) return false;
+  if (!/^-?\d+(\.\d+)?$/.test(value)) return statesValue(text, value);
+
+  const haystack = text.replace(MINUS, '-');
+  const token = numberToken(value);
+
+  const afterResult = new RegExp(`${RESULT_LEAD}\\s*[:=]?\\s*${QUALIFIER}\\(?\\s*${token}`, 'i');
+  const describedAsAnswer = new RegExp(`${token}\\)?\\s+(?:is|was|would\\s+be)\\s+(?:the\\s+)?(?:answer|result|solution|correct|right)`, 'i');
+  if (afterResult.test(haystack) || describedAsAnswer.test(haystack)) return true;
+
+  const significantDigits = value.replace(/^-/, '').replace('.', '').length;
+  if (significantDigits >= 2 || value.includes('.')) {
+    const inQuestion = statesValue(questionText, value);
+    return !inQuestion && statesValue(haystack, value);
+  }
+  return false;
+}
+
 const UNSEEN_CONTENT = [
   /\bI\s+(have\s+|had\s+|just\s+)?(watched|seen|saw|read|opened|listened\s+to|looked\s+at)\b/i,
   /\b(the|this|that|your)\s+(video|pdf|document|file|attachment|worksheet|handout)\s+(shows|says|states|explains|mentions|covers|demonstrates)\b/i,
@@ -73,6 +116,8 @@ export function checkTutorReply(input: {
   /** The text of the correct answer (e.g. "7"). Only enforced while the question is unanswered. */
   secretAnswers: string[];
   mayRevealAnswer: boolean;
+  /** The question text, so numbers the student already sees are not mistaken for the answer. */
+  questionText?: string;
   /** Forbid right/wrong verdicts (a student proposed an answer to a still-open question). */
   noVerdict?: boolean;
 }): GuardResult {
@@ -80,7 +125,7 @@ export function checkTutorReply(input: {
   if (reply.length === 0) return { ok: false, reason: 'EMPTY' };
   if (reply.length > MAX_REPLY_CHARS) return { ok: false, reason: 'TOO_LONG' };
 
-  if (!input.mayRevealAnswer && input.secretAnswers.some((answer) => statesValue(reply, answer))) {
+  if (!input.mayRevealAnswer && input.secretAnswers.some((answer) => statesAnswer(reply, answer, input.questionText))) {
     return { ok: false, reason: 'REVEALS_ANSWER' };
   }
   if (input.noVerdict && VERDICT.some((pattern) => pattern.test(reply))) {

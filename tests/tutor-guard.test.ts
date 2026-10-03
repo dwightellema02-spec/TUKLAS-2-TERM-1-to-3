@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkTutorReply, MAX_REPLY_CHARS, statesValue } from '../src/server/tutor/guard';
+import { checkTutorReply, MAX_REPLY_CHARS, statesAnswer, statesValue } from '../src/server/tutor/guard';
 
 const guard = (reply: string, secret: string[] = ['7'], mayRevealAnswer = false) =>
   checkTutorReply({ reply, secretAnswers: secret, mayRevealAnswer });
@@ -156,5 +156,65 @@ describe('no verdicts on a proposed answer (the tutor must not become an answer 
 
   it('is only enforced when asked (after answering, verdicts are fine)', () => {
     expect(guard("That's correct! The answer is 7.", ['7'], true)).toEqual({ ok: true });
+  });
+});
+
+describe('statesAnswer: states the answer vs. merely contains the digit', () => {
+  const leaks = (reply: string, answer: string, question = '') => statesAnswer(reply, answer, question);
+
+  it.each([
+    ['The answer is 7.', '7'],
+    ['So (−8) + 15 = 7.', '7'],
+    ['Think: 15 − 8 equals 7.', '7'],
+    ['You get 7 in the end.', '7'],
+    ["It's 7!", '7'],
+    ['Answer: 7', '7'],
+    ['7 is the answer, but work it out yourself.', '7'],
+    ['You end up at 7 on the number line.', '7'],
+    ['It comes out to 7.', '7'],
+    ['The result: 7', '7'],
+    ['You will land on 7.', '7'],
+    ['The total is −7.', '-7'],
+    ['That gives −7', '-7'],
+    ['= −24', '−24'],
+    ['The answer is 1.', '1'],
+    ['So the sum equals 0.', '0'],
+    ['The quotient is 2.5', '2.5'],
+  ])('flags a statement of the answer: %s', (reply, answer) => {
+    expect(leaks(reply, answer)).toBe(true);
+  });
+
+  it.each([
+    ['Hint 1: look at the signs of the two numbers.', '1'],
+    ['Step 1: decide if the signs are the same.', '1'],
+    ['Step 2 is to subtract the sizes.', '2'],
+    ['1. Look at the signs. 2. Compare the sizes.', '1'],
+    ['Move 15 steps to the right from −8.', '7'],
+    ['Subtract 8 from 15; what do you get?', '7'],
+    ['Try the first step: which size is larger, 8 or 15?', '7'],
+    ['You tried 17, which is close.', '7'],
+    ['Divide 9 by 3 and think about the sign.', '3'],
+    ['A number line has 0 in the middle.', '0'],
+  ])('allows a reply that only contains the digit: %s', (reply, answer) => {
+    expect(leaks(reply, answer)).toBe(false);
+  });
+
+  it('flags multi-digit answers anywhere, but not numbers the student can already see in the question', () => {
+    expect(leaks('Think about 24 groups of something.', '24')).toBe(true);
+    expect(leaks('Multiply 6 and 4 and see what you find, maybe near 24.', '24')).toBe(true);
+    // 48 is in the question itself, so mentioning it is not giving the answer away.
+    expect(leaks('Start with 48 and ask how many ones fit.', '48', 'What is 48 ÷ 1?')).toBe(false);
+    expect(leaks('The answer is 48.', '48', 'What is 48 ÷ 1?')).toBe(true);
+  });
+
+  it('still treats word answers strictly', () => {
+    expect(leaks('This is called photosynthesis.', 'Photosynthesis')).toBe(true);
+  });
+
+  it('is wired into the reply check, with the question text', () => {
+    const check = (reply: string) =>
+      checkTutorReply({ reply, secretAnswers: ['1'], mayRevealAnswer: false, questionText: 'What is 3 + (−2)?' });
+    expect(check('Hint 1: look at the signs.')).toEqual({ ok: true });
+    expect(check('The answer is 1.')).toEqual({ ok: false, reason: 'REVEALS_ANSWER' });
   });
 });

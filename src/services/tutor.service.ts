@@ -211,6 +211,7 @@ export class TutorService {
         reply,
         secretAnswers: questionRow && !decision.mayRevealAnswer ? [correctText] : [],
         mayRevealAnswer: decision.mayRevealAnswer,
+        questionText: questionRow?.question,
         noVerdict: isProposedAnswer,
       });
       if (verdict.ok) {

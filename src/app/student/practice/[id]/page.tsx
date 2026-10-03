@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { renderWithMath } from '../../../../components/math-formula';
 import { SkillProgress } from '../../../../components/skill-progress';
+import { TutorPanel } from '../../../../components/tutor-panel';
 
 type Answered = {
   selectedIndex: number;
@@ -292,6 +293,8 @@ function PracticeSessionScreen({ id }: { id: string }) {
         )}
 
         {message && <p role="alert">{message}</p>}
+
+        <TutorPanel key={current.id} practiceQuestionId={current.id} heading="Help with this question" />
 
         <div className="action-row">
           {!result ? (

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { EducationalContent, YouTubeVideoPlayer } from '../../../components/educational-content';
 import { renderWithMath } from '../../../components/math-formula';
 import { SkillProgress } from '../../../components/skill-progress';
+import { TutorPanel } from '../../../components/tutor-panel';
 
 type LessonDetail = {
   id: string;
@@ -322,6 +323,7 @@ export default function LessonPage() {
         ))}
 
         {student && <SkillProgress lessonId={lesson.id} />}
+        {student && <TutorPanel lessonId={lesson.id} heading="Ask about this lesson" />}
 
         {/* STUDENT PROGRESS ACTIONS */}
         {student && (

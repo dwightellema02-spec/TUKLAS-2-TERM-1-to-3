@@ -118,6 +118,19 @@ describe('a hint request (AI available)', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('does not mistake a step number for the answer (regression: answer 1, reply says "Hint 1")', async () => {
+    const { user, cookie } = await student('digit');
+    const session = await PracticeService.startLessonBankSession(user.id, { lessonId: INTEGERS, total: 48 });
+    const rows = await db.practiceQuestion.findMany({ where: { sessionId: session.id } });
+    const row = rows.find((r) => (r.options as string[])[r.correctIndex] === '1');
+    expect(row, 'the bank has a question whose answer is 1').toBeTruthy();
+    mockAi(() => 'Hint 1: look at the signs of the two numbers. Step 1 is deciding if they are the same.');
+
+    const data = (await (await ask(cookie, { message: 'hint please', practiceQuestionId: row!.id })).json()).data;
+    expect(data.reply.source).toBe('AI');
+    expect(data.reply.content).toContain('Hint 1');
+  });
+
   it('climbs one rung per request, never past the worked example, whatever the student asks', async () => {
     const { user, cookie } = await student('ladder');
     const q = await openQuestion(user.id);

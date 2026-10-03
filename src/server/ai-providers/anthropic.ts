@@ -1,7 +1,12 @@
 import { AiServiceError } from '../ai-errors';
 import type { AiProvider } from './types';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const DEFAULT_BASE_URL = 'https://api.anthropic.com';
+
+/** Operator-set base URL (proxies, tests). The API key is only ever sent to this host. */
+const messagesUrl = () =>
+  `${(process.env.ANTHROPIC_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/+$/, '')}/v1/messages`;
+
 const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
 export const anthropicProvider: AiProvider = {
@@ -15,7 +20,7 @@ export const anthropicProvider: AiProvider = {
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
     if (!apiKey) throw new AiServiceError('AI service is not configured.', 503);
 
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await fetch(messagesUrl(), {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
