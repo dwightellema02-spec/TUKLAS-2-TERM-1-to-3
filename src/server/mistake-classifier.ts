@@ -115,7 +115,9 @@ export function classifyIntegerMistake(input: {
       category: 'SIGN_ERROR',
       confidence: 'HIGH',
       rule: 'SELECTED_IS_NEGATED_ANSWER',
-      observation: `The number is the right size (${Math.abs(correct)}) but has the wrong sign.`,
+      // Deliberately does not state the number: this text is also shown while a question is
+      // still open (tutoring), where printing the size would give the answer away.
+      observation: 'The size of the number is right, but it has the wrong sign.',
       tip:
         op === '+' || op === '-'
           ? 'Check the sign at the end: on a number line, which direction did you end up from zero?'

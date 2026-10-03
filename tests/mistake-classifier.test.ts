@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildIntegerPracticeBank } from '../prisma/content/integer-practice';
 import { classifyIntegerMistake, parseIntegerQuestion } from '../src/server/mistake-classifier';
+import { statesValue } from '../src/server/tutor/guard';
 
 const classify = (question: string, selectedText: string, correctText: string) =>
   classifyIntegerMistake({ question, selectedText, correctText });
@@ -104,6 +105,17 @@ describe('classification of every wrong option in the practice bank', () => {
     expect(seen.get('SIGN_ERROR') ?? 0).toBeGreaterThanOrEqual(bank.length - 1);
     expect(seen.get('WRONG_OPERATION') ?? 0).toBeGreaterThan(0);
     expect(seen.get('IGNORED_SIGNS') ?? 0).toBeGreaterThan(0);
+  });
+
+  it('never states the correct answer in its observation or tip (safe to show while a question is open)', () => {
+    for (const q of bank) {
+      const correct = q.options[q.correctIndex];
+      q.options.forEach((option, index) => {
+        if (index === q.correctIndex) return;
+        const result = classify(q.question, option, correct);
+        expect(statesValue(`${result.observation} ${result.tip}`, correct), `${q.id} "${option}"`).toBe(false);
+      });
+    }
   });
 
   it('never classifies the correct option as a mistake', () => {

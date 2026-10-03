@@ -625,6 +625,7 @@ model PracticeQuestion {
   learningTarget      LearningObjective? @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
   skillRecord         Skill?             @relation(fields: [skillId], references: [id], onDelete: SetNull)
   quizQuestion        QuizQuestion?      @relation(fields: [quizQuestionId], references: [id], onDelete: SetNull)
+  tutorChats          ChatConversation[]
   answer              PracticeAnswer?
 
   @@index([quizQuestionId])
@@ -751,16 +752,22 @@ model MasteryRecord {
 }
 
 model ChatConversation {
-  id        String        @id @default(cuid())
-  studentId String
-  lessonId  String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  student   User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  lesson    Lesson?       @relation(fields: [lessonId], references: [id], onDelete: SetNull)
-  messages  ChatMessage[]
+  id                 String            @id @default(cuid())
+  studentId          String
+  lessonId           String?
+  /// The practice question this conversation is about (null for a general lesson chat).
+  practiceQuestionId String?
+  /// How far up the hint ladder this conversation has gone (0 = none yet). Set by the server only.
+  hintLevel          Int               @default(0)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  student            User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson             Lesson?           @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  practiceQuestion   PracticeQuestion? @relation(fields: [practiceQuestionId], references: [id], onDelete: SetNull)
+  messages           ChatMessage[]
 
   @@index([studentId, updatedAt])
+  @@index([practiceQuestionId])
 }
 
 model ChatMessage {
@@ -768,6 +775,12 @@ model ChatMessage {
   conversationId String
   role           String
   content        String
+  /// Where an assistant message came from: "AI" (the model) or "AUTOMATIC" (rule-based hint, no AI).
+  source         String?
+  /// Hint-ladder rung this reply was written for (assistant messages).
+  rung           Int?
+  /// What the student was trying to do (student messages), e.g. DONT_UNDERSTAND.
+  intent         String?
   createdAt      DateTime         @default(now())
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
