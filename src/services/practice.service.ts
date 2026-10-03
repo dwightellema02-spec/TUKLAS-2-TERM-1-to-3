@@ -14,6 +14,14 @@ import { db } from '../server/db';
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from '../lib/errors';
 import { z } from 'zod';
 import { classifyIntegerMistake } from '../server/mistake-classifier';
+import { LEVEL_ORDER, SkillMasteryService } from './skill-mastery.service';
+import { difficultyDistance } from '../server/adaptive';
+import type { Difficulty, MasteryLevel } from '../server/mastery';
+
+const normalizeDifficulty = (value: string): Difficulty => {
+  const upper = value.toUpperCase();
+  return upper === 'EASY' || upper === 'HARD' ? upper : 'MEDIUM';
+};
 
 export type CreatePracticeSessionInput = {
   lessonId?: string;
@@ -108,9 +116,49 @@ export class PracticeService {
     }
     const priority = (id: string) => (lastResult.get(id) === false ? 0 : lastResult.has(id) ? 2 : 1);
 
-    const chosen = [...bank]
-      .sort((a, b) => priority(a.id) - priority(b.id) || a.position - b.position)
-      .slice(0, input.total);
+    // Adaptive difficulty: among questions of the same priority, prefer those closest to the
+    // difficulty this student should be practicing for the question's skill (from mastery).
+    const skillIds = [...new Set(bank.map((q) => q.skillId).filter((id): id is string => Boolean(id)))];
+    const masteryRows = skillIds.length
+      ? await db.skillMastery.findMany({
+          where: { studentId, skillId: { in: skillIds } },
+          select: { skillId: true, status: true },
+        })
+      : [];
+    const levelBySkill = new Map(masteryRows.map((row) => [row.skillId, row.status as MasteryLevel]));
+    const distance = (question: (typeof bank)[number]) =>
+      difficultyDistance(
+        normalizeDifficulty(question.difficulty),
+        (question.skillId && levelBySkill.get(question.skillId)) || 'NOT_STARTED',
+      );
+
+    const ranked = [...bank].sort(
+      (a, b) =>
+        priority(a.id) - priority(b.id) || distance(a) - distance(b) || a.position - b.position,
+    );
+
+    // 1. Questions the student missed come back first.
+    const missed = ranked.filter((question) => priority(question.id) === 0);
+    const rest = ranked.filter((question) => priority(question.id) !== 0);
+
+    // 2. The rest rotate across skills (weakest skill first) so a session stays mixed, and each
+    //    skill offers its best-matching question (right priority and difficulty) next.
+    const queues = new Map<string, typeof rest>();
+    for (const question of rest) {
+      const key = question.skillId ?? 'none';
+      queues.set(key, [...(queues.get(key) ?? []), question]);
+    }
+    const levelRank = (key: string) => LEVEL_ORDER.indexOf(levelBySkill.get(key) ?? 'NOT_STARTED');
+    const rotation = [...queues.keys()].sort((a, b) => levelRank(a) - levelRank(b) || a.localeCompare(b));
+    const rotated: typeof rest = [];
+    while (rotated.length < rest.length) {
+      for (const key of rotation) {
+        const next = queues.get(key)?.shift();
+        if (next) rotated.push(next);
+      }
+    }
+
+    const chosen = [...missed, ...rotated].slice(0, input.total);
 
     return db.$transaction(async (tx) => {
       const session = await tx.practiceSession.create({
@@ -242,6 +290,12 @@ export class PracticeService {
             analysis,
           },
         });
+      }
+
+      // Mastery is recomputed from recorded evidence in the same transaction, so an answer
+      // and the level it produces are saved together (or not at all).
+      if (question.skillId) {
+        await SkillMasteryService.recompute(tx, studentId, question.skillId);
       }
 
       const nextCorrect = practiceSession.correct + (correct ? 1 : 0);

@@ -698,3 +698,44 @@ select:focus {
     justify-content: center;
   }
 }
+
+/* ---------- Skill progress (Phase 8) ---------- */
+
+.skill-panel {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e8e0;
+}
+
+.level-track {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.level-track span {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #e1e8e0;
+}
+
+.level-track span.filled {
+  background: #2f7a5d;
+}
+
+.status-chip.level-learning {
+  background: #fff4dc;
+  color: #7a5200;
+}
+
+.status-chip.level-developing {
+  background: #e6f0fb;
+  color: #1c4a80;
+}
+
+.status-chip.level-proficient,
+.status-chip.level-mastered {
+  background: #e8f5ec;
+  color: #1d6b43;
+}

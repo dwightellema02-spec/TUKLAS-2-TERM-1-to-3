@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { renderWithMath } from '../../../../components/math-formula';
+import { SkillProgress } from '../../../../components/skill-progress';
 
 type Answered = {
   selectedIndex: number;
@@ -205,6 +206,8 @@ function PracticeSessionScreen({ id }: { id: string }) {
               );
             })}
           </ol>
+
+          {session.lesson && <SkillProgress lessonId={session.lesson.id} heading="Your skills after this practice" />}
 
           <div className="action-row">
             {session.lesson && (

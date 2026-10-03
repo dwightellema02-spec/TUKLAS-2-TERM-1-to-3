@@ -73,22 +73,22 @@ enum LessonProgressStatus {
 }
 
 model User {
-  id                  String               @id @default(cuid())
-  email               String               @unique
+  id                  String                @id @default(cuid())
+  email               String                @unique
   passwordHash        String
   role                UserRole
   displayName         String
-  isActive            Boolean              @default(true)
-  failedLoginCount    Int                  @default(0)
+  isActive            Boolean               @default(true)
+  failedLoginCount    Int                   @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   studentProfile      StudentProfile?
   teacherProfile      TeacherProfile?
-  ownedClasses        Class[]              @relation("ClassTeacher")
+  ownedClasses        Class[]               @relation("ClassTeacher")
   classMemberships    ClassMember[]
-  lessons             Lesson[]             @relation("LessonAuthor")
-  assignments         Assignment[]         @relation("AssignmentStudent")
+  lessons             Lesson[]              @relation("LessonAuthor")
+  assignments         Assignment[]          @relation("AssignmentStudent")
   practiceSessions    PracticeSession[]
   quizAttempts        QuizAttempt[]
   masteryRecords      MasteryRecord[]
@@ -96,6 +96,8 @@ model User {
   authSessions        AuthSession[]
   lessonProgress      LessonProgress[]
   lessonCheckAttempts LessonCheckAttempt[]
+  skillMastery        SkillMastery[]
+  skillMasteryHistory SkillMasteryHistory[]
   mistakeRecords      MistakeRecord[]
   aiInteractions      AIInteraction[]
 
@@ -332,14 +334,64 @@ model LearningObjective {
 }
 
 model Skill {
-  id            String             @id @default(cuid())
-  code          String?            @unique
-  name          String             @unique
+  id            String                @id @default(cuid())
+  code          String?               @unique
+  name          String                @unique
   description   String?
   objectives    ObjectiveSkill[]
   checks        LessonCheck[]
   quizQuestions QuizQuestion[]
   questions     PracticeQuestion[]
+  mastery       SkillMastery[]
+  masteryLog    SkillMasteryHistory[]
+}
+
+enum MasteryStatus {
+  NOT_STARTED
+  LEARNING
+  DEVELOPING
+  PROFICIENT
+  MASTERED
+}
+
+/// Current evidence-based mastery level of one student for one skill (master plan §14).
+/// Computed by src/server/mastery.ts from the student's latest answer to each question.
+model SkillMastery {
+  id             String        @id @default(cuid())
+  studentId      String
+  skillId        String
+  status         MasteryStatus
+  ruleCode       String
+  attemptCount   Int
+  accuracy       Float
+  recentAccuracy Float
+  consistency    Float
+  /// Full evidence, flags and the student-facing explanation, for transparency and research.
+  details        Json
+  masteryVersion String
+  updatedAt      DateTime      @updatedAt
+  student        User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skill          Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, skillId])
+  @@index([skillId, status])
+}
+
+/// Audit trail: every change of a student's mastery level, with the rule that caused it.
+model SkillMasteryHistory {
+  id             String         @id @default(cuid())
+  studentId      String
+  skillId        String
+  previousStatus MasteryStatus?
+  newStatus      MasteryStatus
+  ruleCode       String
+  summary        String
+  masteryVersion String
+  createdAt      DateTime       @default(now())
+  student        User           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  skill          Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, skillId, createdAt])
 }
 
 model ObjectiveSkill {

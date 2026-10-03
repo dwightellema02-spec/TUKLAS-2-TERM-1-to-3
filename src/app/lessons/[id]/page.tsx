@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { EducationalContent, YouTubeVideoPlayer } from '../../../components/educational-content';
 import { renderWithMath } from '../../../components/math-formula';
+import { SkillProgress } from '../../../components/skill-progress';
 
 type LessonDetail = {
   id: string;
@@ -319,6 +320,8 @@ export default function LessonPage() {
             {assessment.description && <p>{assessment.description}</p>}
           </section>
         ))}
+
+        {student && <SkillProgress lessonId={lesson.id} />}
 
         {/* STUDENT PROGRESS ACTIONS */}
         {student && (

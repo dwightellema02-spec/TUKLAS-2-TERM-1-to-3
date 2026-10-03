@@ -47,6 +47,16 @@ describe('Grade 7 integer practice bank (generated seed content)', () => {
     }
   });
 
+  it('gives every skill a real spread of difficulty so adaptive practice has a choice', () => {
+    for (const skill of new Set(bank.map((q) => q.skillCode))) {
+      const inSkill = bank.filter((q) => q.skillCode === skill);
+      const count = (d: string) => inSkill.filter((q) => q.difficulty === d).length;
+      expect(count('EASY'), `${skill} EASY`).toBeGreaterThanOrEqual(3);
+      expect(count('MEDIUM'), `${skill} MEDIUM`).toBeGreaterThanOrEqual(3);
+      expect(count('HARD'), `${skill} HARD`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it('interleaves operations so a short session is a mixed set', () => {
     const firstTen = new Set(bank.slice(0, 10).map((q) => q.skillCode));
     expect(firstTen.size).toBe(4);
