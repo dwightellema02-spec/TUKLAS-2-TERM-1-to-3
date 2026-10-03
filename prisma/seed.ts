@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/server/auth';
 import { buildIntegerPracticeBank, INTEGER_SKILLS } from './content/integer-practice';
+import { buildTerm1Lessons, TERM1_SOURCE, TERM1_UNITS } from './content/term1-lessons';
 
 dotenv.config({ path: '.env.local', override: true });
 
@@ -599,6 +600,107 @@ async function main() {
       update: data,
       create: { id: q.id, ...data },
     });
+  }
+
+  // 5. Grade 7 Term 1 lessons from the MATATAG Budget of Work (answers computed, see term1-banks.ts)
+  for (const unit of Object.values(TERM1_UNITS)) {
+    await prisma.unit.upsert({
+      where: { id: unit.id },
+      update: { position: unit.position, title: unit.title, description: unit.description },
+      create: { id: unit.id, termId: term1.id, title: unit.title, description: unit.description, position: unit.position, isDemo: false },
+    });
+  }
+
+  for (const lesson of buildTerm1Lessons()) {
+    const published = new Date('2026-10-04T00:00:00.000Z');
+    const record = await prisma.lesson.upsert({
+      where: { id: lesson.id },
+      update: {
+        unitId: TERM1_UNITS[lesson.unit].id,
+        title: lesson.title,
+        description: lesson.description,
+        estimatedMinutes: lesson.estimatedMinutes,
+        position: lesson.position,
+        status: 'PUBLISHED',
+        publishedAt: published,
+      },
+      create: {
+        id: lesson.id,
+        authorId: teacher.id,
+        unitId: TERM1_UNITS[lesson.unit].id,
+        title: lesson.title,
+        description: lesson.description,
+        subject: mathSubject.name,
+        gradeLevel: grade7.label,
+        estimatedMinutes: lesson.estimatedMinutes,
+        position: lesson.position,
+        status: 'PUBLISHED',
+        publishedAt: published,
+      },
+    });
+
+    const competency = await prisma.competency.upsert({
+      where: { code: lesson.competency.code },
+      update: { title: lesson.competency.title, source: TERM1_SOURCE },
+      create: {
+        code: lesson.competency.code,
+        title: lesson.competency.title,
+        description: 'Tuklas identifier (not an official DepEd code).',
+        source: TERM1_SOURCE,
+      },
+    });
+
+    const skillIds = new Map<string, string>();
+    for (const skill of lesson.skills) {
+      const skillRecord = await prisma.skill.upsert({
+        where: { code: skill.code },
+        update: { name: skill.name, description: skill.description },
+        create: { code: skill.code, name: skill.name, description: skill.description },
+      });
+      skillIds.set(skill.code, skillRecord.id);
+    }
+
+    await prisma.learningObjective.deleteMany({ where: { lessonId: record.id } });
+    const objectiveBySkill = new Map<string, string>();
+    for (const [position, objective] of lesson.objectives.entries()) {
+      const created = await prisma.learningObjective.create({
+        data: { lessonId: record.id, competencyId: competency.id, description: objective.description, position },
+      });
+      for (const code of objective.skillCodes) {
+        await prisma.objectiveSkill.create({ data: { objectiveId: created.id, skillId: skillIds.get(code)! } });
+        objectiveBySkill.set(code, created.id);
+      }
+    }
+
+    await prisma.lessonSection.deleteMany({ where: { lessonId: record.id } });
+    await prisma.lessonSection.createMany({
+      data: lesson.sections.map((section, position) => ({ lessonId: record.id, position, ...section })),
+    });
+    await prisma.lessonVocabulary.deleteMany({ where: { lessonId: record.id } });
+    await prisma.lessonVocabulary.createMany({ data: lesson.vocabulary.map((entry) => ({ lessonId: record.id, ...entry })) });
+    await prisma.lessonCheck.deleteMany({ where: { lessonId: record.id } });
+    await prisma.lessonCheck.createMany({
+      data: lesson.checks.map((item, position) => ({ lessonId: record.id, position, ...item })),
+    });
+
+    for (const q of lesson.bank) {
+      const data = {
+        lessonId: record.id,
+        assessmentId: null,
+        skillId: skillIds.get(q.skillCode) ?? null,
+        learningObjectiveId: objectiveBySkill.get(q.skillCode) ?? null,
+        position: q.position,
+        question: q.question,
+        options: q.options,
+        correctIndex: q.correctIndex,
+        explanation: q.explanation,
+        skill: q.skill,
+        purpose: 'REINFORCEMENT' as const,
+        questionType: 'MULTIPLE_CHOICE' as const,
+        difficulty: q.difficulty,
+      };
+      await prisma.quizQuestion.upsert({ where: { id: q.id }, update: data, create: { id: q.id, ...data } });
+    }
   }
 
   console.log('Phase 2 seed completed successfully with real curriculum, lesson, and assessment data.');
