@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/server/auth';
-import { buildIntegerPracticeBank } from './content/integer-practice';
+import { buildIntegerPracticeBank, INTEGER_SKILLS } from './content/integer-practice';
 
 dotenv.config({ path: '.env.local', override: true });
 
@@ -569,10 +569,21 @@ async function main() {
 
   // Practice bank: verified integer questions NOT attached to any assessment, so practice
   // never reuses (or leaks) assessment items. Answers are computed, see integer-practice.ts.
+  const skillIdByCode = new Map<string, string>();
+  for (const skill of Object.values(INTEGER_SKILLS)) {
+    const record = await prisma.skill.upsert({
+      where: { code: skill.code },
+      update: { name: skill.name, description: skill.description },
+      create: { code: skill.code, name: skill.name, description: skill.description },
+    });
+    skillIdByCode.set(skill.code, record.id);
+  }
+
   for (const q of buildIntegerPracticeBank()) {
     const data = {
       lessonId: integersLesson.id,
       assessmentId: null,
+      skillId: skillIdByCode.get(q.skillCode) ?? null,
       position: q.position,
       question: q.question,
       options: q.options,

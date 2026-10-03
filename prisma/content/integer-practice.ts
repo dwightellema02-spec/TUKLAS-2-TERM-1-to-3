@@ -4,7 +4,9 @@
  * Every answer is COMPUTED with the deterministic evaluator, never typed by hand, and
  * every distractor models a common integer mistake (sign error, wrong operation,
  * dropped sign, magnitude slip). Tests re-validate the whole bank with
- * `validateGeneratedQuestion`.
+ * `validateGeneratedQuestion` and an independent calculation.
+ *
+ * Operations are interleaved so any prefix of the bank is a mixed set.
  */
 
 import { evaluateArithmetic } from '../../src/server/question-validator';
@@ -19,14 +21,32 @@ export type PracticeSeedQuestion = {
   correctIndex: number;
   explanation: string;
   skill: string;
+  skillCode: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
 };
 
-const SKILL: Record<Operation, string> = {
-  add: 'Adding integers',
-  subtract: 'Subtracting integers',
-  multiply: 'Multiplying integers',
-  divide: 'Dividing integers',
+/** The four skills practiced in "Operations on Integers" (curriculum skill records). */
+export const INTEGER_SKILLS: Record<Operation, { code: string; name: string; description: string }> = {
+  add: {
+    code: 'G7-INT-ADD',
+    name: 'Adding integers',
+    description: 'Add integers with the same or different signs.',
+  },
+  subtract: {
+    code: 'G7-INT-SUB',
+    name: 'Subtracting integers',
+    description: 'Subtract integers, including subtracting a negative number.',
+  },
+  multiply: {
+    code: 'G7-INT-MUL',
+    name: 'Multiplying integers',
+    description: 'Multiply integers using the sign rules.',
+  },
+  divide: {
+    code: 'G7-INT-DIV',
+    name: 'Dividing integers',
+    description: 'Divide integers using the sign rules.',
+  },
 };
 
 const SYMBOL: Record<Operation, string> = {
@@ -36,26 +56,14 @@ const SYMBOL: Record<Operation, string> = {
   divide: '÷',
 };
 
-const ITEMS: Array<[Operation, number, number]> = [
-  ['add', -8, 15],
-  ['add', 12, -19],
-  ['add', -6, -9],
-  ['add', -14, 14],
-  ['add', 25, -7],
-  ['subtract', 7, -3],
-  ['subtract', -5, 8],
-  ['subtract', 12, -9],
-  ['subtract', -10, -4],
-  ['subtract', 3, 11],
-  ['multiply', -6, -4],
-  ['multiply', 7, -5],
-  ['multiply', -3, 8],
-  ['multiply', -9, -2],
-  ['divide', -36, -6],
-  ['divide', 48, -8],
-  ['divide', -56, 7],
-  ['divide', -45, -9],
-];
+const PAIRS: Record<Operation, Array<[number, number]>> = {
+  add: [[-8, 15], [12, -19], [-6, -9], [-14, 14], [25, -7], [9, -4], [-12, 5], [-3, -11], [7, 8], [-20, 35], [-17, 9], [30, -45]],
+  subtract: [[7, -3], [-5, 8], [12, -9], [-10, -4], [3, 11], [15, -6], [-7, 2], [20, 35], [-18, -5], [0, -8], [14, -14], [-11, 6]],
+  multiply: [[-6, -4], [7, -5], [-3, 8], [-9, -2], [4, -12], [-8, -7], [11, 3], [-5, 9], [-15, -2], [6, -6], [-13, 2], [10, -10]],
+  divide: [[-36, -6], [48, -8], [-56, 7], [-45, -9], [63, -7], [-81, 9], [100, -5], [-72, -8], [54, 6], [-64, -4], [91, -13], [-120, -12]],
+};
+
+const ORDER: Operation[] = ['add', 'subtract', 'multiply', 'divide'];
 
 const show = (n: number) => (n < 0 ? `(−${Math.abs(n)})` : String(n));
 const fmt = (n: number) => (n < 0 ? `−${Math.abs(n)}` : String(n));
@@ -98,7 +106,17 @@ function explain(op: Operation, a: number, b: number, answer: number) {
 }
 
 export function buildIntegerPracticeBank(): PracticeSeedQuestion[] {
-  return ITEMS.map(([op, a, b], index) => {
+  // Round-robin over the four operations so every prefix is a mixed set.
+  const items: Array<[Operation, number, number]> = [];
+  const rounds = PAIRS.add.length;
+  for (let round = 0; round < rounds; round += 1) {
+    for (const op of ORDER) {
+      const [a, b] = PAIRS[op][round];
+      items.push([op, a, b]);
+    }
+  }
+
+  return items.map(([op, a, b], index) => {
     const answer = evaluateArithmetic(expressionFor(op, a, b));
     if (answer === null || !Number.isInteger(answer)) {
       throw new Error(`Practice item ${index} did not evaluate to an integer.`);
@@ -127,7 +145,8 @@ export function buildIntegerPracticeBank(): PracticeSeedQuestion[] {
       options,
       correctIndex,
       explanation: explain(op, a, b, answer),
-      skill: SKILL[op],
+      skill: INTEGER_SKILLS[op].name,
+      skillCode: INTEGER_SKILLS[op].code,
       difficulty: hurdles <= 1 ? 'EASY' : hurdles === 2 ? 'MEDIUM' : 'HARD',
     };
   });

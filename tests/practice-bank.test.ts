@@ -223,6 +223,28 @@ describe('starting a lesson-bank practice session (no AI needed)', () => {
     expect(new Set(secondSources).size).toBe(3);
   });
 
+  it('classifies each mistake by what the student actually did and gives a targeted tip', async () => {
+    const { user, cookie } = await actor('STUDENT', 'classify');
+    const id = (await (await bankSession(cookie, 3)).json()).data.session.id;
+    const questions = (await loadView(cookie, id)).questions;
+
+    // Answer each question with the option that is the NEGATED right answer (a sign error)
+    // when one exists, so the recorded category can be checked against what was done.
+    const q = questions[0];
+    const correct = (await keyOf(q.id)).correctIndex;
+    const negated = q.options.findIndex(
+      (option, i) => i !== correct && option.replace('−', '-') === String(-Number(q.options[correct].replace('−', '-'))),
+    );
+    expect(negated).toBeGreaterThanOrEqual(0);
+    await answer(cookie, id, q.id, negated);
+
+    const mistake = await db.mistakeRecord.findFirstOrThrow({ where: { studentId: user.id } });
+    expect(mistake.category).toBe('SIGN_ERROR');
+    expect(mistake.analysis).toMatch(/wrong sign/i); // what happened
+    expect(mistake.analysis).toMatch(/number line|negatives|sign/i); // what to do next
+    expect(mistake.analysis).toContain((await keyOf(q.id)).explanation!); // why the right answer is right
+  });
+
   it('serves the mistake in the mistakes list so the student can review it', async () => {
     const { cookie } = await actor('STUDENT', 'review');
     const id = (await (await bankSession(cookie, 1)).json()).data.session.id;

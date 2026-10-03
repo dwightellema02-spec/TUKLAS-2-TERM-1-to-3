@@ -38,6 +38,34 @@ describe('Grade 7 integer practice bank (generated seed content)', () => {
     expect(new Set(bank.map((q) => q.difficulty)).size).toBeGreaterThanOrEqual(2);
   });
 
+  it('is deep enough to judge mastery: at least 12 questions per skill with all three difficulty bands', () => {
+    expect(bank.length).toBeGreaterThanOrEqual(48);
+    for (const skill of new Set(bank.map((q) => q.skillCode))) {
+      const inSkill = bank.filter((q) => q.skillCode === skill);
+      expect(inSkill.length, skill).toBeGreaterThanOrEqual(12);
+      expect(new Set(inSkill.map((q) => q.difficulty)).size, `${skill} difficulty spread`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it('interleaves operations so a short session is a mixed set', () => {
+    const firstTen = new Set(bank.slice(0, 10).map((q) => q.skillCode));
+    expect(firstTen.size).toBe(4);
+  });
+
+  it('links every stored practice question to its skill record', async () => {
+    const stored = await db.quizQuestion.findMany({
+      where: { lessonId: 'lesson-math-7-integers', assessmentId: null },
+      include: { skillRecord: true },
+    });
+    expect(stored.length).toBe(bank.length);
+    for (const row of stored) {
+      expect(row.skillRecord, row.id).not.toBeNull();
+      expect(row.skillRecord!.name).toBe(row.skill);
+    }
+    const expected = new Map(bank.map((q) => [q.id, q.skillCode]));
+    for (const row of stored) expect(row.skillRecord!.code).toBe(expected.get(row.id));
+  });
+
   it.each(bank.map((q) => [q.id, q] as const))('%s: the marked answer matches an independent calculation', (_id, q) => {
     expect(toNumber(q.options[q.correctIndex])).toBe(oracle(q.question));
   });

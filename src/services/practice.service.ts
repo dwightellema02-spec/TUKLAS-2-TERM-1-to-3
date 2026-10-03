@@ -13,6 +13,7 @@
 import { db } from '../server/db';
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from '../lib/errors';
 import { z } from 'zod';
+import { classifyIntegerMistake } from '../server/mistake-classifier';
 
 export type CreatePracticeSessionInput = {
   lessonId?: string;
@@ -218,16 +219,27 @@ export class PracticeService {
       // Every wrong answer becomes a reviewable mistake for the student. The category is
       // generic until the mistake engine classifies it (master plan §12).
       if (!correct) {
+        const submittedAnswer = options.data[selectedIndex];
+        const correctReference = options.data[question.correctIndex] ?? null;
+        const classification = classifyIntegerMistake({
+          question: question.question,
+          selectedText: submittedAnswer,
+          correctText: correctReference ?? '',
+        });
+        // What happened, what to do next, and why the right answer is right.
+        const analysis = [classification.observation, classification.tip, question.explanation]
+          .filter(Boolean)
+          .join(' ');
         await tx.mistakeRecord.create({
           data: {
             studentId,
             lessonId: practiceSession.lessonId,
             questionId: question.id,
             practiceSessionId: practiceSession.id,
-            submittedAnswer: options.data[selectedIndex],
-            correctReference: options.data[question.correctIndex] ?? null,
-            category: 'CONCEPTUAL',
-            analysis: question.explanation,
+            submittedAnswer,
+            correctReference,
+            category: classification.category,
+            analysis,
           },
         });
       }
