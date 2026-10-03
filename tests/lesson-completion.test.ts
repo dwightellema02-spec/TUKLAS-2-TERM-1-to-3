@@ -236,4 +236,14 @@ describe('POST /api/lessons/[id]/checks/[checkId]/answer access control and inpu
     expect((await answer(cookie, lessonId, checkIds[0], { selectedIndex: 'one' })).status).toBe(400);
     expect(await db.lessonCheckAttempt.count({ where: { studentId: user.id } })).toBe(0);
   });
+
+  it('throttles answer spam with 429 (not a server error) and keeps grading honest', async () => {
+    const { cookie } = await userWithCookie('STUDENT', 'spammer');
+    const statuses: number[] = [];
+    for (let i = 0; i < 125; i += 1) {
+      statuses.push((await answer(cookie, lessonId, checkIds[0], { selectedIndex: 0 })).status);
+    }
+    expect(statuses.slice(0, 120).every((status) => status === 200)).toBe(true);
+    expect(statuses.slice(120).every((status) => status === 429)).toBe(true);
+  });
 });

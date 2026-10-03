@@ -1,13 +1,12 @@
+import { RateLimitError } from '../lib/errors';
+
+// One RateLimitError class for the whole app. It is an AppError (status 429), so every
+// route using createApiHandler answers 429 instead of a generic 500.
+export { RateLimitError };
+
 const WINDOW_MS = 60_000;
 const SWEEP_THRESHOLD = 5_000;
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
-
-export class RateLimitError extends Error {
-  constructor() {
-    super('Too many requests. Please try again shortly.');
-    this.name = 'RateLimitError';
-  }
-}
 
 export function enforceRateLimit(key: string, limit: number) {
   const now = Date.now();

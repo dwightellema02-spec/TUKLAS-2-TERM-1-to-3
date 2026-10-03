@@ -98,6 +98,7 @@ model User {
   lessonCheckAttempts LessonCheckAttempt[]
   skillMastery        SkillMastery[]
   skillMasteryHistory SkillMasteryHistory[]
+  adminActions        AdminAuditLog[]       @relation("AuditActor")
   mistakeRecords      MistakeRecord[]
   aiInteractions      AIInteraction[]
 
@@ -145,6 +146,8 @@ model Class {
   id          String        @id @default(cuid())
   name        String
   teacherId   String
+  /// Code students use to join. Null means joining is closed. Rotating it invalidates the old one.
+  joinCode    String?       @unique
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   teacher     User          @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
@@ -163,6 +166,20 @@ model ClassMember {
 
   @@id([classId, userId])
   @@index([userId])
+}
+
+/// Who did what in the admin console (account creation, role changes, deactivation).
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  action       String
+  targetUserId String?
+  details      Json?
+  createdAt    DateTime @default(now())
+  actor        User     @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([targetUserId])
 }
 
 model Lesson {
