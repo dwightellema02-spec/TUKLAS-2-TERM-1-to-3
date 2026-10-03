@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { requireServerUser } from '../../lib/auth/server-guard';
 import { DashboardService } from '../../services/dashboard.service';
+import { ClassService } from '../../services/class.service';
+import { JoinClass } from '../../components/join-class';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +21,7 @@ const STATUS_CLASS = {
 export default async function StudentWorkspacePage() {
   const user = await requireServerUser(['STUDENT']);
   const dashboard = await DashboardService.getStudentDashboard(user.id);
+  const classView = await ClassService.getStudentView(user.id);
   const { stats, continueLesson, path, recentSessions } = dashboard;
 
   return (
@@ -59,6 +62,41 @@ export default async function StudentWorkspacePage() {
               : 'You have completed every available lesson. Great work!'}
           </p>
         )}
+      </section>
+
+      <section aria-labelledby="classes-heading" className="practice-card" style={{ marginTop: 24 }}>
+        <h2 id="classes-heading" style={{ marginTop: 0, color: '#0e3b34' }}>Your classes and assignments</h2>
+
+        {classView.assignments.length > 0 ? (
+          <ul className="review-list" style={{ marginBottom: 16 }}>
+            {classView.assignments.map((assignment) => (
+              <li key={assignment.id} className={`review-item${assignment.overdue ? ' missed' : ''}`}>
+                <p style={{ margin: 0 }}>
+                  <Link href={`/lessons/${assignment.lesson.id}`}>{assignment.lesson.title}</Link>{' '}
+                  <span className={`status-chip${STATUS_CLASS[assignment.status]}`}>{STATUS_LABEL[assignment.status]}</span>
+                  {assignment.overdue && <strong> · Overdue</strong>}
+                </p>
+                <p style={{ margin: '4px 0 0', color: '#53635a' }}>
+                  {assignment.className}
+                  {assignment.dueAt
+                    ? ` · due ${assignment.dueAt.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}`
+                    : ' · no due date'}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : classView.classes.length > 0 ? (
+          <p className="empty-state">Your teacher has not assigned anything yet.</p>
+        ) : (
+          <p className="empty-state">You are not in a class yet. Ask your teacher for a join code.</p>
+        )}
+
+        {classView.classes.length > 0 && (
+          <p style={{ color: '#53635a' }}>
+            In class: {classView.classes.map((cls) => `${cls.name} (${cls.teacher})`).join(', ')}
+          </p>
+        )}
+        <JoinClass />
       </section>
 
       <section aria-label="Your progress" className="stat-grid">

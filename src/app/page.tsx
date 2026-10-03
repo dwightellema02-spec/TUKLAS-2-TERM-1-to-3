@@ -24,6 +24,7 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(true);
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [role, setRole] = useState<'STUDENT' | 'TEACHER'>('STUDENT');
+  const [inviteCode, setInviteCode] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -55,7 +56,7 @@ export default function Home() {
         body: JSON.stringify(
           mode === 'login'
             ? { email, password }
-            : { email, password, displayName, role },
+            : { email, password, displayName, role, ...(role === 'TEACHER' ? { inviteCode } : {}) },
         ),
       });
       const payload = await response.json();
@@ -279,6 +280,18 @@ export default function Home() {
                 <option value="STUDENT">Student</option>
                 <option value="TEACHER">Teacher</option>
               </select>
+            </label>
+          )}
+          {mode === 'register' && role === 'TEACHER' && (
+            <label>
+              Teacher invitation code
+              <input
+                value={inviteCode}
+                onChange={(event) => setInviteCode(event.target.value)}
+                autoComplete="off"
+                required
+              />
+              <span className="form-note">Your school administrator gives you this code.</span>
             </label>
           )}
           {message && (
