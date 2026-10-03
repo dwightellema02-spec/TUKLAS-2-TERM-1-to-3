@@ -68,6 +68,13 @@ test('knowledge checks are graded by the server and gate lesson completion', asy
   await openLessonFromDashboard(page);
   const lessonBody = await (await lessonResponse).text();
 
+  // A brand-new student sees every skill as not started, with a recommended first step.
+  const skillsBefore = page.getByRole('region', { name: 'Your skills' });
+  await expect(skillsBefore).toBeVisible();
+  await expect(skillsBefore.locator('.review-item')).toHaveCount(4);
+  await expect(skillsBefore.getByText('Not started')).toHaveCount(4);
+  await expect(skillsBefore).toContainText('Next step');
+
   // The answer key never reaches the student's browser.
   const checks = JSON.parse(lessonBody).data.lesson.checks as Array<Record<string, unknown>>;
   expect(checks.length).toBeGreaterThanOrEqual(2);
@@ -182,6 +189,17 @@ test('practice comes from the lesson, records a mistake, and explains it', async
   }
 
   await expect(page.getByText('9 of 10 correct')).toBeVisible();
+
+  // Mastery is evidence-based: ten answers spread over four skills are NOT enough to claim
+  // more than "learning", however good the score. The student is told why and what to do next.
+  const skills = page.getByRole('region', { name: 'Your skills after this practice' });
+  await expect(skills).toBeVisible();
+  await expect(skills.locator('.review-item')).toHaveCount(4);
+  await expect(skills.locator('.status-chip.level-learning')).toHaveCount(4);
+  await expect(skills.locator('.status-chip.level-mastered')).toHaveCount(0);
+  await expect(skills).toContainText('Next step');
+  await expect(skills).toContainText('too few to judge');
+
   const review = page.locator('.review-item.missed');
   await expect(review).toHaveCount(1);
   await expect(review).toContainText(missedQuestion);
