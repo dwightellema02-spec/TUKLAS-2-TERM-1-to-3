@@ -11,6 +11,7 @@ import {
   requestAiText,
 } from '../../../../server/ai';
 import { generatedPracticeQuestionSchema } from '../../../../server/ai-validation';
+import { validateGeneratedQuestion } from '../../../../server/question-validator';
 
 const inputSchema = z.object({
   sessionId: z.string().trim().min(1),
@@ -72,6 +73,24 @@ export async function POST(request: Request) {
       responseSchema: generatedPracticeQuestionSchema,
     });
 
+    // The AI is not the authority on correctness: verify deterministically before storing.
+    const existing = await db.practiceQuestion.findMany({
+      where: { sessionId: practiceSession.id },
+      select: { question: true },
+    });
+    const validation = validateGeneratedQuestion(result, {
+      priorQuestions: [
+        ...parsed.data.priorQuestions,
+        ...existing.map((item) => item.question),
+      ],
+    });
+    if (!validation.ok) {
+      return jsonError(
+        'The AI produced a question that failed validation. Please try again.',
+        502,
+      );
+    }
+
     const question = await db.practiceQuestion.create({
       data: {
         sessionId: practiceSession.id,
@@ -85,14 +104,14 @@ export async function POST(request: Request) {
       },
     });
 
+    // The answer key and explanation stay on the server until the student submits an
+    // answer (the answers endpoint reveals them afterwards).
     return jsonSuccess({
       question: {
         id: question.id,
         type: result.type,
         question: question.question,
         options: question.options,
-        correctIndex: question.correctIndex,
-        explanation: question.explanation,
         skill: question.skill,
         learningObjective: question.learningObjective,
         difficulty: question.difficulty,
