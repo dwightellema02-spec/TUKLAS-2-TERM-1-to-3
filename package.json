@@ -24,7 +24,9 @@
     "@neon/env": "^1.4.4",
     "@prisma/client": "6.12.0",
     "dotenv": "latest",
+    "mammoth": "^1.13.0",
     "next": "latest",
+    "pdf-parse": "^2.4.5",
     "react": "latest",
     "react-dom": "latest",
     "zod": "^4.6.5"
@@ -39,6 +41,7 @@
     "@vitest/coverage-v8": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "jszip": "^3.10.2",
     "prettier": "latest",
     "prisma": "6.12.0",
     "tsx": "latest",

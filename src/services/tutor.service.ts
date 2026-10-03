@@ -21,7 +21,8 @@ import { classifyIntegerMistake } from '../server/mistake-classifier';
 import { classifyIntent, type TutorIntent } from '../server/tutor/intent';
 import { decideRung, MAX_UNANSWERED_RUNG, RUNG_LABELS, type LadderDecision } from '../server/tutor/ladder';
 import { buildTutorPrompt, sanitizeStudentMessage, type PromptLesson, type PromptQuestion } from '../server/tutor/prompt';
-import { checkTutorReply, type GuardReason } from '../server/tutor/guard';
+import { checkTutorReply, statesAnswer, type GuardReason } from '../server/tutor/guard';
+import { DocumentService } from './document.service';
 import { automaticCheckResponse, automaticHint } from '../server/tutor/fallback';
 import { SkillMasteryService } from './skill-mastery.service';
 
@@ -196,7 +197,18 @@ export class TutorService {
 
     // ---- 4. Ask the AI, 5. check the reply ----
     const isProposedAnswer = intent === 'CHECK_ANSWER' && Boolean(questionRow) && !answered;
-    const prompt = buildTutorPrompt({ lesson, question: promptQuestion, skills, history, message, intent, decision });
+
+    // Teacher documents relevant to what the student asked. While a question is open, any chunk that
+    // states its answer is dropped, so an uploaded worksheet with an answer key cannot reach the model.
+    const retrieved = lessonId
+      ? await DocumentService.relevantForTutor(lessonId, `${message} ${questionRow?.question ?? ''}`, 4)
+      : [];
+    const materials = retrieved
+      .filter((chunk) => decision.mayRevealAnswer || !correctText || !statesAnswer(chunk.content, correctText, questionRow?.question))
+      .slice(0, 3)
+      .map((chunk) => ({ heading: chunk.heading, text: chunk.content }));
+
+    const prompt = buildTutorPrompt({ lesson, materials, question: promptQuestion, skills, history, message, intent, decision });
 
     let source: TutorSource = 'AI';
     let content = '';

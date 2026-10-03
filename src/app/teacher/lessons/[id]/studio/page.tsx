@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { parseYouTubeUrl } from '../../../../../lib/youtube';
+import { LessonDocuments } from '../../../../../components/lesson-documents';
 import { WorkedExampleMetadata } from '../../../../../types/domain';
 
 interface StudioSection {
@@ -81,7 +82,7 @@ export default function LessonStudioPage({
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonDescription, setLessonDescription] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'sections' | 'checks' | 'videos'>('sections');
+  const [activeTab, setActiveTab] = useState<'sections' | 'checks' | 'videos' | 'documents'>('sections');
   const [loading, setLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -362,8 +363,8 @@ export default function LessonStudioPage({
           gap: '16px',
         }}
       >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ minWidth: 0, flex: '1 1 320px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <span
               style={{
                 backgroundColor: lesson.status === 'PUBLISHED' ? '#dcfce7' : '#fef3c7',
@@ -377,7 +378,7 @@ export default function LessonStudioPage({
             >
               {lesson.status}
             </span>
-            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.85rem', color: '#475569' }}>
               {lesson.unit?.term.curriculum.subject.name} · {lesson.unit?.term.curriculum.gradeLevel.label} · Unit: {lesson.unit?.title}
             </span>
           </div>
@@ -403,7 +404,7 @@ export default function LessonStudioPage({
           />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           {isDirty && (
             <span style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 600 }}>
               ● Unsaved changes
@@ -415,7 +416,7 @@ export default function LessonStudioPage({
             </span>
           )}
           {saveStatus === 'saving' && (
-            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 600 }}>
               Saving...
             </span>
           )}
@@ -492,8 +493,10 @@ export default function LessonStudioPage({
 
       {/* STUDIO TABS */}
       <nav
+        aria-label="Lesson studio sections"
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: '8px',
           borderBottom: '2px solid #e2e8f0',
           marginBottom: '24px',
@@ -506,7 +509,7 @@ export default function LessonStudioPage({
             background: 'none',
             border: 'none',
             borderBottom: activeTab === 'sections' ? '3px solid #0e3b34' : '3px solid transparent',
-            color: activeTab === 'sections' ? '#0e3b34' : '#64748b',
+            color: activeTab === 'sections' ? '#0e3b34' : '#475569',
             fontWeight: 700,
             fontSize: '0.95rem',
             cursor: 'pointer',
@@ -521,7 +524,7 @@ export default function LessonStudioPage({
             background: 'none',
             border: 'none',
             borderBottom: activeTab === 'checks' ? '3px solid #0e3b34' : '3px solid transparent',
-            color: activeTab === 'checks' ? '#0e3b34' : '#64748b',
+            color: activeTab === 'checks' ? '#0e3b34' : '#475569',
             fontWeight: 700,
             fontSize: '0.95rem',
             cursor: 'pointer',
@@ -536,7 +539,7 @@ export default function LessonStudioPage({
             background: 'none',
             border: 'none',
             borderBottom: activeTab === 'videos' ? '3px solid #0e3b34' : '3px solid transparent',
-            color: activeTab === 'videos' ? '#0e3b34' : '#64748b',
+            color: activeTab === 'videos' ? '#0e3b34' : '#475569',
             fontWeight: 700,
             fontSize: '0.95rem',
             cursor: 'pointer',
@@ -544,7 +547,25 @@ export default function LessonStudioPage({
         >
           3. Educational Videos ({videos.length})
         </button>
+        <button
+          onClick={() => setActiveTab('documents')}
+          style={{
+            padding: '10px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'documents' ? '3px solid #0e3b34' : '3px solid transparent',
+            color: activeTab === 'documents' ? '#0e3b34' : '#475569',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+          }}
+        >
+          4. Reference Documents
+        </button>
       </nav>
+
+      {/* TAB 4: REFERENCE DOCUMENTS (PDF / Word / text for the AI tutor) */}
+      {activeTab === 'documents' && <LessonDocuments lessonId={lessonId} />}
 
       {/* TAB 1: MULTI-SECTION CONTENT */}
       {activeTab === 'sections' && (
@@ -604,7 +625,7 @@ export default function LessonStudioPage({
 
           {sections.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <p style={{ color: '#64748b' }}>No sections added yet. Click &ldquo;+ Text Section&rdquo; or &ldquo;+ Worked Example&rdquo; above to begin.</p>
+              <p style={{ color: '#475569' }}>No sections added yet. Click &ldquo;+ Text Section&rdquo; or &ldquo;+ Worked Example&rdquo; above to begin.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -752,7 +773,7 @@ export default function LessonStudioPage({
                         </div>
                         {((sec.metadata as WorkedExampleMetadata)?.steps || []).map((st, stepIdx) => (
                           <div key={stepIdx} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, padding: '8px 0', color: '#64748b' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, padding: '8px 0', color: '#475569' }}>
                               {stepIdx + 1}.
                             </span>
                             <input
@@ -861,7 +882,7 @@ export default function LessonStudioPage({
 
           {checks.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <p style={{ color: '#64748b' }}>No formative checks yet. Add a question to verify student comprehension.</p>
+              <p style={{ color: '#475569' }}>No formative checks yet. Add a question to verify student comprehension.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -1002,7 +1023,7 @@ export default function LessonStudioPage({
         <section>
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
             <h3 style={{ margin: '0 0 8px', fontSize: '1.1rem', color: '#0e3b34' }}>Attach Educational YouTube Video</h3>
-            <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: '0.85rem' }}>
+            <p style={{ margin: '0 0 12px', color: '#475569', fontSize: '0.85rem' }}>
               Paste a YouTube link (e.g. <code>https://www.youtube.com/watch?v=kYJv8y-9q5U</code> or <code>https://youtu.be/kYJv8y-9q5U</code>).
             </p>
             {videoError && (
@@ -1078,7 +1099,7 @@ export default function LessonStudioPage({
                     }}
                   />
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Video ID: {vid.videoId}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#475569' }}>Video ID: {vid.videoId}</span>
                     <button
                       type="button"
                       onClick={() => removeVideo(idx)}

@@ -101,6 +101,7 @@ model User {
   adminActions        AdminAuditLog[]       @relation("AuditActor")
   mistakeRecords      MistakeRecord[]
   aiInteractions      AIInteraction[]
+  lessonDocuments     LessonDocument[]
 
   @@index([role])
 }
@@ -217,6 +218,7 @@ model Lesson {
   chatConversations ChatConversation[]
   mistakes          MistakeRecord[]
   aiInteractions    AIInteraction[]
+  documents         LessonDocument[]
 
   @@index([authorId, status])
   @@index([subject, gradeLevel])
@@ -317,6 +319,39 @@ model LessonSource {
   updatedAt    DateTime @default(now()) @updatedAt
   lesson       Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
+  @@index([lessonId])
+}
+
+/// Teacher-supplied reference material for a lesson. Only the extracted TEXT is stored (never the file).
+model LessonDocument {
+  id           String          @id @default(cuid())
+  lessonId     String
+  uploadedById String
+  fileName     String
+  kind         String
+  byteSize     Int
+  pageCount    Int?
+  charCount    Int
+  wordCount    Int
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  lesson       Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  uploadedBy   User            @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  chunks       DocumentChunk[]
+
+  @@index([lessonId, isActive])
+}
+
+model DocumentChunk {
+  id         String         @id @default(cuid())
+  documentId String
+  lessonId   String
+  position   Int
+  heading    String
+  content    String
+  document   LessonDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, position])
   @@index([lessonId])
 }
 

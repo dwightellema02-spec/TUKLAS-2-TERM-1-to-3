@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Document extraction: pdfjs loads its own worker file at runtime, which breaks when bundled.
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', 'mammoth'],
   async headers() {
     return [
       {

@@ -22,7 +22,8 @@ export default defineConfig({
     hookTimeout: 120_000,
     globalSetup: ['tests/global-setup.ts'],
     // Browser tests live in e2e/ and run with Playwright (npm run test:e2e).
-    exclude: ['e2e/**', 'node_modules/**'],
+    // .next holds copies of external packages (with their own test files) after a Next build or dev run.
+    exclude: ['e2e/**', 'node_modules/**', '.next/**'],
     env: {
       DATABASE_URL: testDatabaseUrl,
       DB_TARGET: 'test',

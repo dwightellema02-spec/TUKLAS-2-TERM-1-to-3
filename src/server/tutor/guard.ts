@@ -109,7 +109,7 @@ const VERDICT = [
   /\b(well\s+done|spot\s+on|exactly|not\s+quite|you\s+got\s+it|nailed\s+it|that\s+works|that\s+doesn'?t\s+work)\b/i,
 ];
 
-const INSTRUCTION_ECHO = [/<\/?student_message>/i, /\bBEGIN\s+(LESSON|INSTRUCTIONS|CONTEXT)\b/i, /\bsystem\s+prompt\b/i, /\bhidden\s+instructions?\b/i];
+const INSTRUCTION_ECHO = [/<\/?student_message>/i, /\bBEGIN\s+(LESSON|INSTRUCTIONS|CONTEXT|TEACHER\s+MATERIAL)\b/i, /\bsystem\s+prompt\b/i, /\bhidden\s+instructions?\b/i];
 
 export function checkTutorReply(input: {
   reply: string;
