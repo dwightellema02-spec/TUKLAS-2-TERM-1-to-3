@@ -5,6 +5,9 @@
  * CRITICAL SECURITY RULE: Never print or leak secret values in error messages or logs.
  */
 
+import { resolveProviderName } from '../server/ai-providers';
+import type { AiProviderName } from '../server/ai-providers';
+
 export class ConfigurationError extends Error {
   readonly missingVariables: string[];
 
@@ -20,6 +23,11 @@ export type ServerConfig = {
   authSecret: string;
   anthropicApiKey: string | null;
   anthropicModel: string;
+  /** Which AI backend serves tutor/generation requests. */
+  aiProvider: AiProviderName;
+  geminiApiKey: string | null;
+  /** No default on purpose: a Gemini model name must be chosen and verified by the operator. */
+  geminiModel: string | null;
   nodeEnv: 'development' | 'test' | 'production';
   port: number;
   appUrl: string;
@@ -51,6 +59,12 @@ export function validateEnv(env: Record<string, string | undefined> = process.en
     missing.push('AUTH_SECRET (must be at least 32 characters)');
   }
 
+  // 3. AI_PROVIDER (must be a known provider; blank means "anthropic")
+  const aiProvider = resolveProviderName(env.AI_PROVIDER);
+  if (!aiProvider) {
+    missing.push('AI_PROVIDER (must be "anthropic" or "gemini")');
+  }
+
   if (missing.length > 0) {
     throw new ConfigurationError(
       `Server configuration error: Missing or invalid required environment variable(s): ${missing.join(', ')}. ` +
@@ -61,6 +75,8 @@ export function validateEnv(env: Record<string, string | undefined> = process.en
 
   const anthropicApiKey = env.ANTHROPIC_API_KEY?.trim() || null;
   const anthropicModel = env.ANTHROPIC_MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
+  const geminiApiKey = env.GEMINI_API_KEY?.trim() || null;
+  const geminiModel = env.GEMINI_MODEL?.trim() || null;
   const port = parseInt(env.PORT || '3000', 10);
   const appUrl = env.NEXT_PUBLIC_APP_URL?.trim() || `http://localhost:${isNaN(port) ? 3000 : port}`;
   const allowDemoSeed = env.ALLOW_DEMO_SEED === 'true';
@@ -70,6 +86,9 @@ export function validateEnv(env: Record<string, string | undefined> = process.en
     authSecret,
     anthropicApiKey,
     anthropicModel,
+    aiProvider: aiProvider ?? 'anthropic',
+    geminiApiKey,
+    geminiModel,
     nodeEnv,
     port: isNaN(port) ? 3000 : port,
     appUrl,
@@ -110,5 +129,8 @@ export function isDevelopment(): boolean {
 }
 
 export function hasAiConfigured(): boolean {
-  return Boolean(getServerConfig().anthropicApiKey);
+  const config = getServerConfig();
+  return config.aiProvider === 'gemini'
+    ? Boolean(config.geminiApiKey && config.geminiModel)
+    : Boolean(config.anthropicApiKey);
 }

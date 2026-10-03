@@ -1,20 +1,12 @@
 import { z } from 'zod';
+import { AiServiceError } from './ai-errors';
+import { getAiProvider } from './ai-providers';
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
-const DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
+export { AiServiceError } from './ai-errors';
+
 const REQUEST_TIMEOUT_MS = 20_000;
 const RATE_WINDOW_MS = 60_000;
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
-
-export class AiServiceError extends Error {
-  status: number;
-
-  constructor(message: string, status = 502) {
-    super(message);
-    this.name = 'AiServiceError';
-    this.status = status;
-  }
-}
 
 export function enforceAiRateLimit(key: string, limit = 10) {
   const now = Date.now();
@@ -51,14 +43,21 @@ function parseJsonText(text: string) {
   }
 }
 
+/**
+ * Sends one request to the configured AI provider (AI_PROVIDER = anthropic | gemini).
+ *
+ * Shared here for every provider: the timeout/abort, JSON extraction, schema validation
+ * and the mapping of failures to honest HTTP errors. When the provider is not
+ * configured the caller gets a 503 — there is never a made-up reply.
+ */
 export async function requestAiText<T = string>(input: {
   system: string;
   user: string;
   maxTokens: number;
   responseSchema?: z.ZodType<T>;
 }): Promise<T> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const provider = getAiProvider();
+  if (!provider.isConfigured()) {
     throw new AiServiceError('AI service is not configured.', 503);
   }
 
@@ -66,38 +65,13 @@ export async function requestAiText<T = string>(input: {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const response = await fetch(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL,
-        max_tokens: input.maxTokens,
-        system: input.system,
-        messages: [{ role: 'user', content: input.user }],
-      }),
+    const text = await provider.complete({
+      system: input.system,
+      user: input.user,
+      maxTokens: input.maxTokens,
+      json: Boolean(input.responseSchema),
       signal: controller.signal,
     });
-
-    if (!response.ok) {
-      throw new AiServiceError(
-        'The AI service rejected the request.',
-        response.status === 429 ? 429 : 502,
-      );
-    }
-
-    const payload = (await response.json()) as {
-      content?: Array<{ type?: string; text?: string }>;
-    };
-    const text = payload.content
-      ?.find((item) => item.type === 'text')
-      ?.text?.trim();
-    if (!text) {
-      throw new AiServiceError('The AI returned an empty response.', 502);
-    }
 
     if (!input.responseSchema) {
       return text as T;

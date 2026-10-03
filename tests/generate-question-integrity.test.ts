@@ -165,3 +165,59 @@ describe('POST /api/ai/generate-question integrity', () => {
     expect((await ask(sessionId)).status).toBe(200);
   });
 });
+
+describe('generate-question with the Gemini provider selected', () => {
+  const geminiReply = (value: unknown) =>
+    new Response(
+      JSON.stringify({
+        candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(value) }] } }],
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    );
+  const saved = {
+    provider: process.env.AI_PROVIDER,
+    key: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL,
+  };
+
+  beforeEach(() => {
+    process.env.AI_PROVIDER = 'gemini';
+    process.env.GEMINI_API_KEY = 'test-only-gemini-key';
+    process.env.GEMINI_MODEL = 'test-model-name';
+  });
+
+  afterEach(() => {
+    for (const [name, value] of [
+      ['AI_PROVIDER', saved.provider],
+      ['GEMINI_API_KEY', saved.key],
+      ['GEMINI_MODEL', saved.model],
+    ] as const) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  });
+
+  it('serves a validated question through Gemini without exposing the key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(geminiReply(baseQuestion));
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await ask(sessionId);
+    expect(response.status).toBe(200);
+    expect(String(fetchMock.mock.calls[0][0])).toContain('generativelanguage.googleapis.com');
+    const payload = await response.json();
+    expect(payload.data.question).not.toHaveProperty('correctIndex');
+  });
+
+  it('applies the same deterministic validation to Gemini output', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(geminiReply({ ...baseQuestion, correctIndex: 3 })));
+    expect((await ask(sessionId)).status).toBe(502);
+    expect(await db.practiceQuestion.count({ where: { sessionId } })).toBe(0);
+  });
+
+  it('answers 503 when Gemini is selected but has no model configured', async () => {
+    process.env.GEMINI_MODEL = '';
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect((await ask(sessionId)).status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
