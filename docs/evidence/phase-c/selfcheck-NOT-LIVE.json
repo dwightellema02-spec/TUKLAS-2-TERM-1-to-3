@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-10-04T14:07:27.097Z",
+  "verifiedLive": false,
+  "why": "The endpoint is NOT the provider’s default host: this is a harness self-check, not live verification.",
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5-20251001",
+  "endpointHost": "localhost:3401",
+  "requestCount": 9,
+  "step3_smoke": {
+    "httpStatus": 200,
+    "latencyMs": 70,
+    "lessonContextIncluded": true,
+    "historyIncluded": false,
+    "messagesInRequest": 1,
+    "replySource": "AI",
+    "aiInteractionLogged": true,
+    "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers."
+  },
+  "step4_grounding": {
+    "requestContains": {
+      "lessonTitle": true,
+      "lessonContent": true,
+      "vocabulary": true,
+      "studentQuestion": true
+    },
+    "replyMentionsLessonIdeas": false,
+    "status": "REQUEST PASS; reply NOT clearly grounded; HUMAN REVIEW NEEDED",
+    "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers."
+  },
+  "step5_continuity": {
+    "turns": [
+      {
+        "student": "I think -3 + 7 = -10.",
+        "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers.",
+        "source": "AI",
+        "historyTurnsInRequest": 0
+      },
+      {
+        "student": "I still don't understand.",
+        "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers. Let us try a number line this time.",
+        "source": "AI",
+        "historyTurnsInRequest": 2
+      },
+      {
+        "student": "Should I move left or right?",
+        "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers.",
+        "source": "AI",
+        "historyTurnsInRequest": 4
+      },
+      {
+        "student": "I think right.",
+        "reply": "Hint 4 from the fake tutor: look at the signs of the two numbers.",
+        "source": "AI",
+        "historyTurnsInRequest": 6
+      }
+    ],
+    "contextGrowsEveryTurn": true,
+    "resetsEachTurn": false
+  },
+  "step6_socratic": {
+    "question": "What is 3 + (−2)?",
+    "replySource": "AI",
+    "fallbackReason": null,
+    "answerLeaked": false,
+    "offersScaffolding": true,
+    "status": "PASS (HUMAN REVIEW NEEDED)",
+    "reply": "Hint 1 from the fake tutor: look at the signs of the two numbers."
+  },
+  "step7_repeated": {
+    "response1": "Hint 1 from the fake tutor: look at the signs of the two numbers.",
+    "response2": "Hint 1 from the fake tutor: look at the signs of the two numbers.",
+    "rung1": 1,
+    "rung2": 1,
+    "wordSimilarity": 1,
+    "requestWasTold": {
+      "sameAnswerAsBefore": false,
+      "earlierTurnsIncluded": true
+    },
+    "replyAcknowledgesRepetition": false,
+    "classification": "NOT ADAPTIVE (near-identical replies)"
+  },
+  "allRepliesFromModel": true,
+  "repliesFromModel": 9,
+  "repliesTotal": 9
+}

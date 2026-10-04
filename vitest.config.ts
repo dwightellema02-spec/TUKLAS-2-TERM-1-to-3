@@ -23,11 +23,17 @@ export default defineConfig({
     globalSetup: ['tests/global-setup.ts'],
     // Browser tests live in e2e/ and run with Playwright (npm run test:e2e).
     // .next holds copies of external packages (with their own test files) after a Next build or dev run.
-    exclude: ['e2e/**', 'node_modules/**', '.next/**'],
+    // tests/ai/live runs only through `npm run test:live` (vitest.live.config.ts): it calls a real model.
+    exclude: ['e2e/**', 'node_modules/**', '.next/**', 'tests/ai/live/**'],
     env: {
       DATABASE_URL: testDatabaseUrl,
       DB_TARGET: 'test',
       TEACHER_INVITE_CODE: 'test-only-teacher-invite-code',
+      // The normal suite must NEVER reach a real model, even when a real key sits in .env.local.
+      // Tests that need a key set their own fake one.
+      ANTHROPIC_API_KEY: '',
+      GEMINI_API_KEY: '',
+      ANTHROPIC_BASE_URL: '',
     },
     coverage: {
       provider: 'v8',

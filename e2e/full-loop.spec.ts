@@ -287,6 +287,7 @@ test('7. the teacher sees the class insights built from what the student actuall
   await expectNoHorizontalScroll(teacher);
 
   await teacher.getByRole('link', { name: /View details for Loop Student/ }).click();
-  await expect(teacher.getByText('3 questions answered, 67% correct; 3 in the last 14 days.')).toBeVisible();
+  // The first visit to this route compiles it on demand in `next dev`, which can exceed the default 10 s when run alone.
+  await expect(teacher.getByText('3 questions answered, 67% correct; 3 in the last 14 days.')).toBeVisible({ timeout: 45_000 });
   await snap(teacher, testInfo, 'loop-7-teacher-insights');
 });
