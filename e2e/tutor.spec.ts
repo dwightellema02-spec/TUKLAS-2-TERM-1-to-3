@@ -133,6 +133,57 @@ test('a proposed answer gets no verdict, even if the model gives one', async () 
   await expect(page.getByRole('status').filter({ hasText: 'Correct!' })).toBeVisible();
 });
 
+test('the same wrong answer twice is recognised: the tutor changes strategy instead of repeating itself', async ({}, testInfo) => {
+  await startPractice(page);
+  await panel(page).getByRole('button', { name: 'Need help? Ask Tuklas' }).click();
+  await resetFake();
+
+  await say(page, "I think it's 999");
+  await expect(log(page)).toContainText('Hint 1 from the fake tutor');
+  await say(page, "I think it's 999");
+  // The local fake model repeats itself word for word; the app refuses the repeat and follows its teaching plan.
+  await expect(log(page)).toContainText("You have suggested 999 2 times, so let's try another way");
+  await expect(log(page).getByText('Automatic hint (not AI)')).toHaveCount(1);
+  await expect(log(page)).not.toContainText("That's correct");
+
+  // The model was told about the repeat (what a real model would receive on turn 2).
+  const calls = await fakeCalls();
+  expect(calls[1].system).toMatch(/proposed the same answer \(999\) 2 times in a row/);
+  expect(calls[1].system).toMatch(/Do not repeat your last reply/);
+  await snap(page, testInfo, 't3-tutor-same-answer-twice');
+});
+
+test('saying "I get it now" moves forward with a concrete next step, and the model is told not to explain again', async () => {
+  await startPractice(page);
+  await panel(page).getByRole('button', { name: 'Need help? Ask Tuklas' }).click();
+  await resetFake();
+  await say(page, 'Oh I get it now, the signs decide the result');
+  await expect(panel(page)).toContainText('Next step: choose your answer and submit it.');
+  const [call] = await fakeCalls();
+  expect(call.system).toContain('The student says they understand. Do not explain again');
+  expect(call.system).toMatch(/action ASK_STUDENT_TO_TRY/);
+  await expect(panel(page).getByLabel(/Hint \d of 6/)).toHaveCount(0); // no hint was spent
+});
+
+test('repeated confusion leads to a prerequisite review, then a practice recommendation', async ({}, testInfo) => {
+  await startPractice(page);
+  await panel(page).getByRole('button', { name: 'Need help? Ask Tuklas' }).click();
+  await resetFake();
+  await say(page, "I still don't get it");
+  await expect(log(page)).toContainText('number line');
+  await say(page, "I still don't understand this");
+  await expect(panel(page)).toContainText('Next step: review the idea behind this first.');
+  await say(page, "I'm still confused");
+  await expect(panel(page)).toContainText(/Next step: practise “.+” with new questions\./);
+  const calls = await fakeCalls();
+  expect(calls[1].system).toMatch(/action REVIEW_PREREQUISITE/);
+  expect(calls[2].system).toMatch(/action RECOMMEND_PRACTICE/);
+  expect(calls[2].system).toMatch(/said they do not understand 3 times/);
+  await expectNoHorizontalScroll(page);
+  await expectAccessible(page, 'tutor panel with next steps');
+  await snap(page, testInfo, 't4-tutor-escalation');
+});
+
 test('when the AI fails the student still gets real, clearly labelled help', async ({}, testInfo) => {
   await startPractice(page);
   await panel(page).getByRole('button', { name: 'Need help? Ask Tuklas' }).click();

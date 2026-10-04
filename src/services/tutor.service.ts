@@ -24,6 +24,11 @@ import { buildTutorPrompt, sanitizeStudentMessage, type PromptLesson, type Promp
 import { checkTutorReply, statesAnswer, type GuardReason } from '../server/tutor/guard';
 import { DocumentService } from './document.service';
 import { automaticCheckResponse, automaticHint } from '../server/tutor/fallback';
+import { decideTeaching, nextStepFor, parseState, wordSimilarity, type TeachingAction } from '../server/tutor/policy';
+import type { Prisma } from '@prisma/client';
+
+/** A model reply this similar (word overlap) to the previous tutor reply is treated as a repeat and not shown. */
+const REPEAT_SIMILARITY = 0.85;
 import { SkillMasteryService } from './skill-mastery.service';
 
 export type TutorSource = 'AI' | 'AUTOMATIC';
@@ -78,6 +83,8 @@ export class TutorService {
               content: m.content,
               source: m.source,
               rung: m.rung,
+              action: m.action,
+              nextStep: m.role === 'assistant' ? nextStepFor(m.action as TeachingAction | null) : null,
               label: m.role === 'assistant' ? (m.source === 'AUTOMATIC' ? AUTOMATIC_LABEL : AI_LABEL) : null,
               createdAt: m.createdAt,
             })),
@@ -195,6 +202,21 @@ export class TutorService {
           .map((m) => ({ role: m.role === 'user' ? ('user' as const) : ('assistant' as const), content: m.content }))
       : [];
 
+    // ---- 3b. The teaching policy: what is the best next teaching action? (pure; see policy.ts) ----
+    const focus = questionRow?.skillId ? picture?.skills.find((s) => s.skill.id === questionRow.skillId) ?? null : null;
+    const focusFlags = (focus?.flags ?? {}) as { repeatedSignErrors?: boolean; repeatedConceptualMistakes?: boolean };
+    const { plan, state: nextState } = decideTeaching({
+      state: parseState(existing?.state),
+      intent,
+      claimedAnswer,
+      questionOpen: Boolean(questionRow) && !answered,
+      questionAnswered: answered,
+      answeredCorrectly: questionRow?.answer ? questionRow.answer.correct : null,
+      masteryLevel: focus?.status ?? null,
+      repeatedMistake: Boolean(focusFlags.repeatedSignErrors || focusFlags.repeatedConceptualMistakes),
+      ladder: decision,
+    });
+
     // ---- 4. Ask the AI, 5. check the reply ----
     const isProposedAnswer = intent === 'CHECK_ANSWER' && Boolean(questionRow) && !answered;
 
@@ -208,7 +230,7 @@ export class TutorService {
       .slice(0, 3)
       .map((chunk) => ({ heading: chunk.heading, text: chunk.content }));
 
-    const prompt = buildTutorPrompt({ lesson, materials, question: promptQuestion, skills, history, message, intent, decision });
+    const prompt = buildTutorPrompt({ lesson, materials, question: promptQuestion, skills, history, message, intent, decision, plan });
 
     let source: TutorSource = 'AI';
     let content = '';
@@ -226,7 +248,12 @@ export class TutorService {
         questionText: questionRow?.question,
         noVerdict: isProposedAnswer,
       });
-      if (verdict.ok) {
+      const previousReply = [...history].reverse().find((turn) => turn.role === 'assistant')?.content;
+      if (verdict.ok && previousReply && wordSimilarity(reply, previousReply) >= REPEAT_SIMILARITY) {
+        // The model said (almost) the same thing again: showing it would teach nothing. Use the planned strategy instead.
+        source = 'AUTOMATIC';
+        fallbackReason = 'GUARD_REPEATED';
+      } else if (verdict.ok) {
         content = reply;
       } else {
         source = 'AUTOMATIC';
@@ -240,8 +267,15 @@ export class TutorService {
 
     if (source === 'AUTOMATIC') {
       content = isProposedAnswer
-        ? automaticCheckResponse({ question: questionRow!.question, claimed: claimedAnswer! })
+        ? automaticCheckResponse({
+            question: questionRow!.question,
+            claimed: claimedAnswer!,
+            plan,
+            lessonExcerpt: lesson?.sections[0]?.text.slice(0, 220) ?? null,
+            avoidValues: correctText ? [correctText] : [],
+          })
         : automaticHint({
+            plan,
             rung: decision.rung,
             question: questionRow?.question ?? null,
             lessonExcerpt: lesson?.sections[0]?.text.slice(0, 220) ?? null,
@@ -270,11 +304,13 @@ export class TutorService {
           content,
           source,
           rung: questionRow ? decision.rung : null,
+          action: plan.action,
+          strategy: plan.strategy,
         },
       });
       await tx.chatConversation.update({
         where: { id: conversation.id },
-        data: { hintLevel: newLevel, updatedAt: new Date() },
+        data: { hintLevel: newLevel, state: nextState as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
       });
       await tx.aIInteraction.create({
         data: {
@@ -284,7 +320,7 @@ export class TutorService {
           model,
           latencyMs,
           success: source === 'AI',
-          metadata: { rung: decision.rung, intent, source, fallbackReason, answered },
+          metadata: { rung: decision.rung, intent, source, fallbackReason, answered, action: plan.action, strategy: plan.strategy },
         },
       });
       return { conversationId: conversation.id, assistant };
@@ -299,6 +335,8 @@ export class TutorService {
         source,
         rung: questionRow ? decision.rung : null,
         rungLabel: questionRow ? RUNG_LABELS[decision.rung] ?? null : null,
+        action: plan.action,
+        nextStep: nextStepFor(plan.action, focus?.skill.name ?? null),
         label: source === 'AUTOMATIC' ? AUTOMATIC_LABEL : AI_LABEL,
         createdAt: saved.assistant.createdAt,
       },

@@ -9,6 +9,8 @@ type Message = {
   source?: 'AI' | 'AUTOMATIC' | null;
   rung?: number | null;
   label?: string | null;
+  /** What the teaching policy suggests the student DO next (practice, submit, review), if anything. */
+  nextStep?: string | null;
 };
 
 type Props = {
@@ -149,6 +151,11 @@ export function TutorPanel({ practiceQuestionId, lessonId, heading = 'Ask Tuklas
                     : message.label ?? (message.source === 'AUTOMATIC' ? 'Automatic hint (not AI)' : 'Ask Tuklas (AI)')}
                 </span>
                 <p>{message.content}</p>
+                {message.role === 'assistant' && message.nextStep && (
+                  <p className="tutor-next" style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0e3b34' }}>
+                    {message.nextStep}
+                  </p>
+                )}
               </div>
             ))}
             <div ref={endRef} />

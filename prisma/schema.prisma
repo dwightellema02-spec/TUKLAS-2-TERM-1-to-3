@@ -794,6 +794,8 @@ model ChatConversation {
   practiceQuestionId String?
   /// How far up the hint ladder this conversation has gone (0 = none yet). Set by the server only.
   hintLevel          Int               @default(0)
+  /// Safe educational state (attempts, confusion count, strategies already used...). Server-written only. See src/server/tutor/policy.ts.
+  state              Json?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   student            User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -816,6 +818,10 @@ model ChatMessage {
   rung           Int?
   /// What the student was trying to do (student messages), e.g. DONT_UNDERSTAND.
   intent         String?
+  /// The teaching action the policy chose for this reply (assistant messages), e.g. REVIEW_PREREQUISITE.
+  action         String?
+  /// The explanation strategy used in this reply (assistant messages), e.g. NUMBER_LINE.
+  strategy       String?
   createdAt      DateTime         @default(now())
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

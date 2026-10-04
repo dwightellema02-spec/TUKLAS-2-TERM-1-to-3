@@ -126,11 +126,12 @@ describe('what a model receives over a four-turn conversation (owner’s Phase C
     expect(requests[3].user).toMatch(/Tuklas: Tutor reply 1[\s\S]*Tuklas: Tutor reply 2[\s\S]*Tuklas: Tutor reply 3/);
   });
 
-  it('(known gap) nothing tells the model that the student gave the same answer before, or what strategy was already used', async () => {
+  it('(Phase D) every request carries a teaching plan; later ones say what was already tried', async () => {
     await conversation();
-    for (const request of requests) {
-      expect(request.system).not.toMatch(/same (answer|attempt)|already (tried|used)|strategy you (used|tried)/i);
-    }
+    for (const request of requests) expect(request.system).toContain('TEACHING PLAN');
+    expect(requests[0].system).not.toContain('Already used with this student here'); // nothing tried yet
+    expect(requests[1].system).toMatch(/Already used with this student here: rule/); // turn 1 explained the rule
+    expect(requests[1].system).toMatch(/action CHANGE_EXPLANATION/); // "I still don't understand"
   });
 
   it('keeps cost and size bounded: max tokens fixed, history capped, no answer key in a general chat', async () => {

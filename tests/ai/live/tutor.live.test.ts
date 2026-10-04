@@ -260,8 +260,10 @@ describe.skipIf(!live)('live tutor verification', () => {
       wordSimilarity: Number(sim.toFixed(2)),
       requestWasTold: { sameAnswerAsBefore: /same (answer|attempt)|already (tried|said)/i.test(lastRequest.system), earlierTurnsIncluded: lastRequest.user.includes('Conversation so far') },
       replyAcknowledgesRepetition: recognisedRepetition,
-      // The app does NOT yet track repetition (Phase D). Any difference here comes from the model alone.
-      classification: sim >= 0.8 ? 'NOT ADAPTIVE (near-identical replies)' : 'DIFFERENT TEXT; the app gave the model no repetition signal, so this is NOT proof of adaptation',
+      // Since Phase D the app tells the model about the repeat (requestWasTold.sameAnswerAsBefore) and replaces a reply that
+      // is near-identical to the previous one with the planned strategy. Whether the MODEL's own reply changes
+      // strategy usefully is what a person must judge from response1/response2.
+      classification: sim >= 0.8 ? 'NOT ADAPTIVE (near-identical replies)' : 'DIFFERENT TEXT (the model was told about the repeat; judge the strategy by reading both replies)',
     };
   });
 

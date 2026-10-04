@@ -33,6 +33,7 @@ export const RUNGS = {
 export const MAX_UNANSWERED_RUNG = RUNGS.WORKED_EXAMPLE;
 
 export const RUNG_LABELS: Record<number, string> = {
+  0: 'No hint needed',
   1: 'Hint',
   2: 'Guiding question',
   3: 'Stronger hint',
@@ -91,6 +92,9 @@ export function decideRung(input: {
     case 'ANOTHER_EXAMPLE':
       // A different example is a concept-level aid; never below the concept rung.
       return { ...base, rung: clamp(Math.max(currentLevel, RUNGS.CONCEPT_EXPLANATION)), useDifferentExample: true };
+    case 'UNDERSTOOD':
+      // A student who says they understand spends no hint and is not given more scaffolding.
+      return { ...base, rung: currentLevel };
     case 'WHY':
     case 'CHECK_ANSWER':
       // Reasoning about what was just said (or about their own answer) keeps the current rung.

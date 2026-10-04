@@ -14,6 +14,7 @@
 import type { LadderDecision } from './ladder';
 import { RUNG_LABELS } from './ladder';
 import type { TutorIntent } from './intent';
+import { STRATEGY_DESCRIPTION, type TeachingPlan } from './policy';
 
 export type PromptLesson = {
   title: string;
@@ -45,7 +46,33 @@ export type TutorPromptInput = {
   message: string;
   intent: TutorIntent;
   decision: LadderDecision;
+  /** What the teaching policy decided for this reply (see policy.ts). */
+  plan?: TeachingPlan;
 };
+
+/** The teaching plan as instructions to the model. Contains only safe educational state. */
+function planRules(plan: TeachingPlan): string[] {
+  const lines = [
+    `TEACHING PLAN (decided by the system from this student's history here; follow it): action ${plan.action}. Strategy for this reply: ${STRATEGY_DESCRIPTION[plan.strategy]}.`,
+  ];
+  if (plan.avoid.length > 0) {
+    lines.push(
+      `Already used with this student here: ${plan.avoid.map((s) => s.toLowerCase().replace(/_/g, ' ')).join(', ')}. Do not simply repeat them; if you must revisit one, do it in a clearly new way.`,
+    );
+  }
+  if (plan.claimed && plan.sameAttemptCount >= 1) {
+    lines.push(
+      `The student has proposed the same answer (${plan.claimed}) ${plan.sameAttemptCount + 1} times in a row. Do not repeat your last reply. Do not say whether it is right or wrong; ask about their steps, or use the new strategy.`,
+    );
+  }
+  if (plan.confusedCount >= 2) {
+    lines.push(`The student has said they do not understand ${plan.confusedCount} times. Do not explain it the same way again.`);
+  }
+  if (plan.understands) {
+    lines.push('The student says they understand. Do not explain again; ask them to apply it.');
+  }
+  return lines;
+}
 
 const MAX_SECTION_CHARS = 450;
 const MAX_SECTIONS = 6;
@@ -54,6 +81,7 @@ const MAX_HISTORY = 8;
 const MAX_MESSAGE_CHARS = 1_000;
 
 const RUNG_INSTRUCTIONS: Record<number, string> = {
+  0: 'The student says they understand, so give no hint: follow the TEACHING PLAN and ask them to apply it. Do not state the final result.',
   1: 'Give ONE short nudge toward the relevant idea. Do not explain the method and do not do any calculation.',
   2: 'Ask ONE guiding question that helps the student notice what to do next. Do not give the method.',
   3: 'Give a stronger hint: name the rule or idea from the lesson that applies, without applying it to the student\'s numbers.',
@@ -114,6 +142,7 @@ export function buildTutorPrompt(input: TutorPromptInput): { system: string; use
           'A "Video transcript" entry is the caption text of the lesson video, labelled with the time range it covers. You have not watched the video. You may say "Your lesson video around 2:15 talks about…" using only the time range and words shown there, and you may suggest the student rewatch that part.',
         ]
       : []),
+    ...(input.plan ? planRules(input.plan) : []),
     `HOW TO REPLY NOW (hint level ${rung}: ${RUNG_LABELS[rung] ?? 'Hint'}): ${RUNG_INSTRUCTIONS[rung] ?? RUNG_INSTRUCTIONS[1]}`,
   ];
 

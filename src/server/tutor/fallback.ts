@@ -10,8 +10,14 @@
 import { parseIntegerQuestion } from '../mistake-classifier';
 import { statesValue } from './guard';
 import { RUNGS } from './ladder';
+import type { TeachingPlan } from './policy';
+
+/** The part of the teaching plan the rule-based fallback acts on. */
+export type FallbackPlan = Pick<TeachingPlan, 'action' | 'strategy' | 'variant' | 'sameAttemptCount' | 'confusedCount' | 'claimed'>;
 
 export type AutomaticHintInput = {
+  /** When present, the reply follows the teaching policy (different strategy = different reply). */
+  plan?: FallbackPlan;
   rung: number;
   question: string | null;
   /** The first words of the lesson's own explanation (published content only). */
@@ -107,10 +113,44 @@ const EXAMPLES: Record<Op, Example[]> = {
   '/': ([[-12, 3], [-20, -5], [18, -2], [-30, 6], [42, -7], [-16, -8]] as const).map(([a, b]) => productExample('/', a, b)),
 };
 
-function pickExample(op: Op, avoid: string[], kind: 'short' | 'worked') {
-  const candidates = EXAMPLES[op];
+function pickExample(op: Op, avoid: string[], kind: 'short' | 'worked', variant = 0) {
+  const all = EXAMPLES[op];
+  // Start from a different example each time this strategy is used again, so the student is not shown the same one.
+  const candidates = all.map((_, i) => all[(i + variant) % all.length]);
   const safe = candidates.find((example) => !avoid.some((value) => statesValue(example[kind], value)));
   return (safe ?? candidates[candidates.length - 1])[kind];
+}
+
+// The earlier idea each operation depends on. Deliberately number-free: it can never state a result.
+const PREREQUISITE: Record<Op, string> = {
+  '+': "Let's go back one step. Which way does a negative number move on the number line, and which way does a positive one move? How far from zero is a negative number? Answer those first, then come back.",
+  '-': "Let's go back to adding. Subtracting a number is adding its opposite, so first make sure you are comfortable adding integers with different signs. What is the opposite of a number? Answer that first, then come back.",
+  '*': 'Let\'s go back to repeated adding: "a × b" means a groups of b. If you keep adding a negative number again and again, does the total grow or shrink? Answer that first, then come back.',
+  '/': "Let's go back to multiplication: division undoes it. Ask yourself, what number times the second number gives the first? Work that out with sizes only, then decide the sign.",
+};
+
+const GENERIC_STRATEGY: Partial<Record<TeachingPlan['strategy'], string>> = {
+  NUMBER_LINE: 'Try drawing it: a picture, a number line or a small table can make the idea easier to see. What does your drawing show?',
+  DIFFERENT_EXAMPLE: 'Try a smaller, easier example of the same kind first, with simple numbers, and do the same steps. What stays the same when the numbers get bigger?',
+  WORKED_EXAMPLE: 'Find the worked example in your lesson that is closest to this question and follow its steps one by one, covering the final result.',
+  STEP_BY_STEP: 'Write only the FIRST step of your working and tell me what you got. We will check it before going on.',
+  PREREQUISITE: "Let's go back one step. Which earlier idea in this lesson does this question depend on? Open that part of the lesson and try one easy example of it first.",
+};
+
+/** The reply for a teaching action that is not about explaining: it points the student to DO something. */
+function forwardMoving(plan: FallbackPlan): string | null {
+  switch (plan.action) {
+    case 'ASK_STUDENT_TO_TRY':
+      return 'That sounds like you have the idea, so no more hints are needed. Choose your answer and press Submit. The check will tell you whether it is right.';
+    case 'CHECK_UNDERSTANDING':
+      return 'Nice. To make sure it sticks, say the rule in your own words, or try the practice questions for this lesson.';
+    case 'INCREASE_DIFFICULTY':
+      return 'You seem ready for more. Try the harder practice questions in this lesson.';
+    case 'RECOMMEND_PRACTICE':
+      return 'We have tried a few ways to look at this. The best next step is practice on this skill with new questions: press "Practice this lesson", and come back to ask when a question is hard.';
+    default:
+      return null;
+  }
 }
 
 const sizeOf = (n: number) => Math.abs(n);
@@ -147,14 +187,65 @@ function genericHint(rung: number, excerpt: string | null | undefined): string {
   }
 }
 
+/** Help text chosen by the teaching policy: a different strategy gives a genuinely different reply. */
+function plannedHint(input: AutomaticHintInput, plan: FallbackPlan, parsed: { a: number; op: Op; b: number } | null): string {
+  const avoid = input.avoidValues ?? [];
+  let lead = '';
+  if (plan.claimed && plan.sameAttemptCount >= 1) {
+    lead = `You have suggested ${plan.claimed.replace('-', '−')} ${plan.sameAttemptCount + 1} times, so let's try another way to check it. `;
+  } else if (plan.action === 'CHANGE_EXPLANATION' || plan.action === 'REVIEW_MISTAKE') {
+    lead = "Let's look at it a different way. ";
+  } else if (input.diagnosis && input.rung <= RUNGS.STRONGER_HINT) {
+    lead = `${input.diagnosis.observation} ${input.diagnosis.tip} `;
+  }
+
+  if (!parsed) {
+    const generic = GENERIC_STRATEGY[plan.strategy];
+    return `${lead}${generic ?? genericHint(input.rung, input.lessonExcerpt)}`;
+  }
+
+  const { a, op, b } = parsed;
+  switch (plan.strategy) {
+    case 'NUDGE':
+      return `${lead}${FIRST_HINT[op]}`;
+    case 'GUIDING_QUESTION':
+      return `${lead}${GUIDING[op]}`;
+    case 'RULE':
+      return `${lead}The rule to use: ${RULE[op]}`;
+    case 'NUMBER_LINE':
+      return `${lead}${ALTERNATE[op]}`;
+    case 'DIFFERENT_EXAMPLE':
+      return `${lead}Here is a different example: ${pickExample(op, avoid, 'short', plan.variant)}. Can you do the same steps with your numbers?`;
+    case 'WORKED_EXAMPLE':
+      return `${lead}Here is a worked example with different numbers. ${pickExample(op, avoid, 'worked', plan.variant)} Now try the same steps on your question.`;
+    case 'STEP_BY_STEP':
+      return plan.action === 'REVIEW_MISTAKE'
+        ? `${lead}Write only the first step of your working, one line: are the signs the same or different? Tell me what you notice and we will build it from there.`
+        : `${lead}${partialSteps(op, a, b)}`;
+    case 'PREREQUISITE':
+      return `${lead}${PREREQUISITE[op]}`;
+    default:
+      return `${lead}${genericHint(input.rung, input.lessonExcerpt)}`;
+  }
+}
+
 /** Returns the rule-based help text for a rung. Never states the answer to an open question. */
 export function automaticHint(input: AutomaticHintInput): string {
+  // A student who says they understand is moved forward, even after answering: not given the explanation again.
+  const forwardFirst = input.plan ? forwardMoving(input.plan) : null;
+  if (forwardFirst) return forwardFirst;
   if (input.answeredExplanation) {
     return `Here is the full explanation: ${input.answeredExplanation}`;
   }
 
   const avoid = input.avoidValues ?? [];
   const parsed = input.question ? parseIntegerQuestion(input.question) : null;
+
+  if (input.plan) {
+    const forward = forwardMoving(input.plan);
+    if (forward) return forward;
+    return plannedHint(input, input.plan, parsed);
+  }
   const parts: string[] = [];
 
   if (input.diagnosis && input.rung <= RUNGS.STRONGER_HINT) {
@@ -200,7 +291,24 @@ export function automaticHint(input: AutomaticHintInput): string {
  * answer is right (that would make the tutor an answer oracle); it sends the student back to
  * their own steps. The real check is submitting the answer.
  */
-export function automaticCheckResponse(input: { question: string | null; claimed: string }): string {
+export function automaticCheckResponse(input: {
+  question: string | null;
+  claimed: string;
+  plan?: FallbackPlan;
+  lessonExcerpt?: string | null;
+  avoidValues?: string[];
+}): string {
+  // The student proposed the same answer again: repeating the first reply would teach nothing. Follow the plan instead
+  // (still no verdict on whether the answer is right).
+  if (input.plan && input.plan.sameAttemptCount >= 1) {
+    return automaticHint({
+      rung: 1,
+      question: input.question,
+      lessonExcerpt: input.lessonExcerpt,
+      avoidValues: input.avoidValues,
+      plan: input.plan,
+    });
+  }
   const parsed = input.question ? parseIntegerQuestion(input.question) : null;
   const rule = parsed ? ` Compare your steps with this rule: ${RULE[parsed.op]}` : '';
   return `You suggested ${input.claimed}. Hints do not check answers; submitting your answer does. First write out the steps you used to get it, one line each.${rule}`;

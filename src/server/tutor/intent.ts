@@ -13,6 +13,7 @@ export type TutorIntent =
   | 'CHECK_ANSWER' // "I think it's -10"
   | 'STILL_CONFUSED' // "I still don't get it"
   | 'DONT_UNDERSTAND' // "I don't understand"
+  | 'UNDERSTOOD' // "ah, I get it now"
   | 'ANOTHER_EXAMPLE' // "can you give me another example?"
   | 'WHY' // "why did we move left?"
   | 'HINT' // "hint please"
@@ -34,6 +35,10 @@ const STILL_CONFUSED =
 
 const DONT_UNDERSTAND =
   /\b(i\s+)?(don'?t|dont|do\s+not)\s+(understand|get|know)\b|\bnot\s+(sure|getting)\b|\b(confused|lost|stuck)\b|\bhindi\s+ko\s+(maintindihan|gets|alam)\b|\bdi\s+ko\s+(maintindihan|gets|alam)\b|\bwala\s+akong\s+maintindihan\b/i;
+
+// Checked AFTER the "don't understand" patterns, so "I don't get it" is never read as understanding.
+const UNDERSTOOD =
+  /\b(now\s+)?i\s+(get|got|understand)\s+(it|this|that)\b|\bnow\s+i\s+(understand|see|get)\b|\bi\s+(finally\s+)?(understand|get)\s+now\b|\bi\s+see\s+(now|how|why)\b|\bmakes?\s+sense\s+now\b|\bah+\s*,?\s*(ok|okay|i\s+see|i\s+get)\b|\b(naintindihan|nagets|gets)\s+ko\s+na\b|\bnaintindihan\s+ko\s+na\b/i;
 
 const ANOTHER_EXAMPLE =
   /\b(another|more|different|one\s+more|other)\s+(example|problem|one)\b|\bexample\s+(please|pls)\b|\b(ibang|iba\s+pang)\s+halimbawa\b|\bhalimbawa\s+(pa|naman)\b|\bgive\s+(me\s+)?an?\s+example\b/i;
@@ -63,6 +68,7 @@ export function classifyIntent(rawMessage: string): IntentResult {
   if (GIVE_ANSWER.test(message)) return { intent: 'GIVE_ANSWER', claimedAnswer: null };
   if (STILL_CONFUSED.test(message)) return { intent: 'STILL_CONFUSED', claimedAnswer: null };
   if (DONT_UNDERSTAND.test(message)) return { intent: 'DONT_UNDERSTAND', claimedAnswer: null };
+  if (UNDERSTOOD.test(message)) return { intent: 'UNDERSTOOD', claimedAnswer: null };
   if (ANOTHER_EXAMPLE.test(message)) return { intent: 'ANOTHER_EXAMPLE', claimedAnswer: null };
   if (WHY.test(message)) return { intent: 'WHY', claimedAnswer: null };
   if (HINT.test(message)) return { intent: 'HINT', claimedAnswer: null };
