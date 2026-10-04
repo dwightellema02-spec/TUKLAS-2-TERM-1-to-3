@@ -119,7 +119,7 @@ export function LessonDocuments({ lessonId }: { lessonId: string }) {
       ) : documents.length === 0 ? (
         <p>No documents yet. The tutor will use only the lesson text.</p>
       ) : (
-        <div className="table-scroll">
+        <div className="table-scroll" role="region" aria-label="Attached documents (scrolls sideways on small screens)" tabIndex={0}>
           <table style={{ borderCollapse: 'separate', borderSpacing: '14px 6px' }}>
             <caption className="sr-only">Documents attached to this lesson</caption>
             <thead>

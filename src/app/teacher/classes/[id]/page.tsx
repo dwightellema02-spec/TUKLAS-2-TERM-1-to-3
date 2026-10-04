@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
+import { ClassInsightsPanel } from '../../../../components/class-insights';
 
 type Student = {
   id: string;
@@ -181,7 +182,7 @@ export default function ClassDetailPage() {
           {detail.students.length === 0 ? (
             <p className="empty-state">No students yet. Share the join code or add a student by email.</p>
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll" role="region" aria-label="Class roster (scrolls sideways on small screens)" tabIndex={0}>
               <table className="roster-table">
                 <caption className="sr-only">Students in {detail.class.name}</caption>
                 <thead>
@@ -216,6 +217,9 @@ export default function ClassDetailPage() {
                       <td>{student.unresolvedMistakes}</td>
                       <td>{formatDate(student.lastActive) ?? 'No activity'}</td>
                       <td>
+                        <Link className="quiet-button" href={`/teacher/classes/${id}/students/${student.id}`} aria-label={`View details for ${student.displayName}`}>
+                          Details
+                        </Link>{' '}
                         <button
                           className="quiet-button"
                           onClick={() =>
@@ -233,6 +237,8 @@ export default function ClassDetailPage() {
             </div>
           )}
         </section>
+
+        <ClassInsightsPanel classId={id} />
 
         <section aria-labelledby="assign-heading" className="skill-panel">
           <h2 id="assign-heading" style={{ marginTop: 0 }}>Assignments</h2>

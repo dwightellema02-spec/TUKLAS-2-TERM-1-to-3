@@ -156,7 +156,7 @@ export default function AdminConsolePage() {
           ) : users.length === 0 ? (
             <p className="empty-state">No users match.</p>
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll" role="region" aria-label="User accounts (scrolls sideways on small screens)" tabIndex={0}>
               <table className="roster-table">
                 <caption className="sr-only">User accounts</caption>
                 <thead>

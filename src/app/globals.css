@@ -828,6 +828,51 @@ select:focus {
   font-size: 0.85rem;
 }
 
+/* Teacher analytics: a day-by-day bar list. The numbers are always written out; the bar is only a picture of them. */
+.insight-days {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.insight-days li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 13rem);
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.insight-bar-track {
+  display: block;
+  height: 10px;
+  border-radius: 5px;
+  background: #e2e8e4;
+}
+
+.insight-bar {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: #1f6b4a;
+}
+
+.insight-day-value {
+  color: #334155;
+}
+
+@media (max-width: 560px) {
+  .insight-days li {
+    grid-template-columns: 4rem minmax(0, 1fr);
+  }
+  .insight-day-value {
+    grid-column: 1 / -1;
+    padding-left: 4rem;
+  }
+}
+
 /* Long unbroken strings (emails, codes, URLs) wrap only when they would not fit. */
 .practice-card,
 .review-item {

@@ -134,6 +134,10 @@ test('the teacher sees the student on the roster with no invented numbers', asyn
   await expect(row).toContainText('No answers yet');
   await expect(row).toContainText('No activity');
   await expect(teacher.getByText('1 student · 0 with activity')).toBeVisible();
+  // Analytics invent nothing either: no answers means no skills, no hard questions.
+  const insights = teacher.getByRole('region', { name: 'Class insights' });
+  await expect(insights).toContainText('No practice answers yet');
+  await expect(insights.getByRole('table')).toHaveCount(0);
   await expectNoHorizontalScroll(teacher);
   await expectAccessible(teacher, 'class roster');
   await snap(teacher, testInfo, 'c4-roster-empty-student');
@@ -183,6 +187,39 @@ test('after the student practices, the teacher sees real activity and accuracy',
   await expect(row).not.toContainText('No activity');
   await expectAccessible(teacher, 'roster with activity');
   await snap(teacher, testInfo, 'c6-roster-with-activity');
+});
+
+test('class insights and the student page are built from the practice that happened', async ({}, testInfo) => {
+  await teacher.reload();
+  const insights = teacher.getByRole('region', { name: 'Class insights' });
+  await expect(insights).toContainText('Last 14 days: 1 of 1 students practised, answering 3 questions with 100% correct.');
+  await expect(insights.getByRole('list', { name: /Questions answered each day/ }).getByRole('listitem')).toHaveCount(14);
+  await expect(insights.getByRole('list', { name: /Questions answered each day/ })).toContainText('3 questions, 1 student');
+  await expect(insights.getByRole('table', { name: 'Class standing by skill' }).getByRole('row')).not.toHaveCount(1); // header + at least one skill
+  // Three answers are too few to call any question hard, and the page says why.
+  await expect(insights).toContainText('None yet. A question is listed when at least 2 students tried it 3+ times');
+  await expectNoHorizontalScroll(teacher);
+  await expectAccessible(teacher, 'class insights');
+  await snap(teacher, testInfo, 'c8-class-insights');
+
+  await teacher.getByRole('link', { name: `View details for Student ${tag}` }).click();
+  await expect(teacher.getByRole('heading', { level: 1 })).toHaveText(`Student ${tag}`);
+  await expect(teacher.getByText('3 questions answered, 100% correct; 3 in the last 14 days.')).toBeVisible();
+  await expect(teacher.getByRole('region', { name: 'Recent practice' })).toContainText('3 of 10 answered, not finished');
+  await expectNoHorizontalScroll(teacher);
+  await expectAccessible(teacher, 'student detail');
+  await snap(teacher, testInfo, 'c9-student-detail');
+  await teacher.goBack();
+});
+
+test('another teacher cannot read this class’s insights or its students through the API', async () => {
+  await signIn(rival, 'teacher-demo@tuklas.local');
+  expect((await rival.request.get(`/api/classes/${classId}/insights`)).status()).toBe(404);
+  const studentId = await teacher.evaluate(async (id) => {
+    const response = await fetch(`/api/classes/${id}`);
+    return (await response.json()).data.students[0].id as string;
+  }, classId);
+  expect((await rival.request.get(`/api/classes/${classId}/students/${studentId}`)).status()).toBe(404);
 });
 
 test('other teachers, students and visitors cannot reach the class', async ({}, testInfo) => {
