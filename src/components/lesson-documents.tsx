@@ -95,13 +95,14 @@ export function LessonDocuments({ lessonId }: { lessonId: string }) {
     <section aria-label="Reference documents" className="card">
       <h3>Reference documents</h3>
       <p>
-        Upload notes or worksheets (PDF, Word .docx or text, up to 5 MB). Tuklas keeps only the text and the AI tutor may use the parts that
-        match a student&apos;s question. Scanned or image-only PDFs cannot be read.
+        Upload notes or worksheets (PDF, Word .docx or text, up to 5 MB), or the caption file of your lesson video (.srt or .vtt). Tuklas keeps
+        only the text and the AI tutor may use the parts that match a student&apos;s question; for captions it can point to the time in the
+        video. Tuklas does not download videos or captions itself. Scanned or image-only PDFs cannot be read.
       </p>
 
       <form onSubmit={upload} aria-label="Upload a document" className="inline-form">
         <label htmlFor="lesson-document-file">Document file</label>
-        <input id="lesson-document-file" ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.text" disabled={busy} />
+        <input id="lesson-document-file" ref={fileRef} type="file" accept=".pdf,.docx,.txt,.md,.markdown,.text,.srt,.vtt" disabled={busy} />
         <button type="submit" className="submit-button" disabled={busy}>
           {busy ? 'Working...' : 'Upload'}
         </button>
@@ -136,7 +137,7 @@ export function LessonDocuments({ lessonId }: { lessonId: string }) {
                 <tr key={doc.id}>
                   <th scope="row">{doc.fileName}</th>
                   <td>
-                    {doc.kind}
+                    {doc.kind === 'TRANSCRIPT' ? 'Video captions' : doc.kind}
                     {doc.pageCount ? `, ${doc.pageCount} pp` : ''}
                   </td>
                   <td>{formatSize(doc.byteSize)}</td>

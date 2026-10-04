@@ -13,6 +13,7 @@
 
 import { ValidationError } from '../../lib/errors';
 import { chunkText, type TextChunk } from './chunk';
+import { chunkCaptions, looksLikeCaptions, parseCaptions } from './transcript';
 
 export const DOCUMENT_LIMITS = {
   maxBytes: 5 * 1024 * 1024,
@@ -23,7 +24,7 @@ export const DOCUMENT_LIMITS = {
   maxZipEntries: 2_000,
 } as const;
 
-export type DocumentKind = 'PDF' | 'DOCX' | 'TEXT';
+export type DocumentKind = 'PDF' | 'DOCX' | 'TEXT' | 'TRANSCRIPT';
 
 export type ExtractedDocument = {
   kind: DocumentKind;
@@ -42,6 +43,10 @@ export function detectDocumentKind(buffer: Uint8Array, fileName: string): Docume
   if (buffer.length >= 4 && startsWith(buffer, [0x50, 0x4b, 0x03, 0x04])) {
     // A zip. Only a Word document is accepted, not any zip (xlsx, jar, apk...).
     return /\.docx$/i.test(fileName) && looksLikeDocx(buffer) ? 'DOCX' : null;
+  }
+  if (/\.(srt|vtt)$/i.test(fileName)) {
+    // Caption files must be text AND look like captions; a renamed file is refused.
+    return isProbablyText(buffer) && looksLikeCaptions(Buffer.from(buffer).toString('utf-8')) ? 'TRANSCRIPT' : null;
   }
   if (/\.(txt|text|md|markdown)$/i.test(fileName) && isProbablyText(buffer)) return 'TEXT';
   return null;
@@ -154,11 +159,12 @@ export async function extractDocument(input: { buffer: Uint8Array; fileName: str
 
   const kind = detectDocumentKind(buffer, fileName);
   if (!kind) {
-    throw new ValidationError('Unsupported file. Upload a PDF, a Word document (.docx) or a text file (.txt, .md).');
+    throw new ValidationError('Unsupported file. Upload a PDF, a Word document (.docx), a text file (.txt, .md) or video captions (.srt, .vtt).');
   }
 
   let raw = '';
   let pageCount: number | null = null;
+  let captionChunks: TextChunk[] | null = null;
   try {
     if (kind === 'PDF') {
       const pdf = await extractPdf(buffer);
@@ -166,6 +172,11 @@ export async function extractDocument(input: { buffer: Uint8Array; fileName: str
       pageCount = pdf.pages;
     } else if (kind === 'DOCX') {
       raw = await extractDocx(buffer);
+    } else if (kind === 'TRANSCRIPT') {
+      const cues = parseCaptions(Buffer.from(buffer).toString('utf-8'));
+      if (cues.length === 0) throw new ValidationError('No captions were found in this file. Upload a .srt or .vtt caption file.');
+      captionChunks = chunkCaptions(cues);
+      raw = cues.map((cue) => cue.text).join('\n');
     } else {
       raw = Buffer.from(buffer).toString('utf-8');
     }
@@ -188,7 +199,7 @@ export async function extractDocument(input: { buffer: Uint8Array; fileName: str
     throw new ValidationError(`The document has more than ${DOCUMENT_LIMITS.maxChars.toLocaleString('en-US')} characters of text; split it into smaller files.`);
   }
 
-  const chunks = chunkText(text);
+  const chunks = captionChunks ?? chunkText(text);
   return {
     kind,
     text,

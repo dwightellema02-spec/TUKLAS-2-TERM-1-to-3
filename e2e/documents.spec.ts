@@ -142,6 +142,42 @@ test('removing the document stops the tutor from using it', async () => {
   expect((await fakeCalls())[0].system).not.toContain('TEACHER MATERIAL');
 });
 
+test('a teacher uploads video captions and the tutor can point to the moment in the video', async ({}, testInfo) => {
+  const captionName = `lesson-video-${marker}.vtt`;
+  const captions = `WEBVTT
+
+00:00:03.000 --> 00:00:09.000
+Welcome back to the lesson on integers.
+
+00:01:10.000 --> 00:01:20.000
+Watch how the ${marker} trick turns subtracting a negative into adding a positive.
+`;
+  await openDocuments(teacher);
+  const panel = documentsPanel(teacher);
+  await panel.getByLabel('Document file').setInputFiles({ name: captionName, mimeType: 'text/vtt', buffer: Buffer.from(captions) });
+  await panel.getByRole('button', { name: 'Upload' }).click();
+  await expect(panel.getByRole('status').filter({ hasText: `Added ${captionName}` })).toBeVisible();
+  await expect(panel.getByRole('row').filter({ hasText: captionName })).toContainText('Video captions');
+  await expectNoHorizontalScroll(teacher);
+  await expectAccessible(teacher, 'lesson documents tab with video captions');
+  await snap(teacher, testInfo, 'v1-video-captions');
+
+  await resetFake();
+  await askLessonTutor(student, `Where does the ${marker} trick for subtracting a negative appear?`);
+  const [call] = await fakeCalls();
+  expect(call.system).toContain('Video transcript "Video 1:10–1:20"');
+  expect(call.system).toContain(`the ${marker} trick`);
+  expect(call.system).toContain('You have not watched the video');
+
+  await panel.getByRole('button', { name: `Remove ${captionName}` }).click();
+  await panel.getByRole('button', { name: `Confirm remove ${captionName}` }).click();
+  await expect(panel.getByRole('row').filter({ hasText: captionName })).toHaveCount(0);
+
+  await panel.getByLabel('Document file').setInputFiles({ name: 'not-captions.vtt', mimeType: 'text/vtt', buffer: Buffer.from('Just a sentence that is long enough but has no cues in it.') });
+  await panel.getByRole('button', { name: 'Upload' }).click();
+  await expect(panel.getByRole('alert')).toContainText(/unsupported/i);
+});
+
 test('a student cannot reach the document tools', async () => {
   const response = await student.request.get(`/api/lessons/${LESSON_ID}/documents`);
   expect(response.status()).toBe(403);
