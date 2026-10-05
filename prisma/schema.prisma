@@ -584,6 +584,8 @@ model QuizQuestion {
   skillId             String?
   purpose             QuestionPurpose    @default(INITIAL)
   assessmentId        String?
+  /// Short teacher-written notes on mistakes students commonly make on this question (shown to the tutor).
+  misconceptionTags   String[]           @default([])
   lesson              Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   learningObjective   LearningObjective? @relation(fields: [learningObjectiveId], references: [id], onDelete: SetNull)
   skillRecord         Skill?             @relation(fields: [skillId], references: [id], onDelete: SetNull)

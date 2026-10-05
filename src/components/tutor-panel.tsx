@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { VoiceControls } from './voice-controls';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type Message = {
@@ -11,6 +13,8 @@ type Message = {
   label?: string | null;
   /** What the teaching policy suggests the student DO next (practice, submit, review), if anything. */
   nextStep?: string | null;
+  /** Set when the tutor recommends practice: the lesson and skill to practise. */
+  practice?: { lessonId: string; skillId: string; skillName: string } | null;
 };
 
 type Props = {
@@ -43,6 +47,26 @@ export function TutorPanel({ practiceQuestionId, lessonId, heading = 'Ask Tuklas
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  /** Targeted practice: a session made only of questions for the skill the tutor named. */
+  async function startTargetedPractice(target: NonNullable<Message['practice']>) {
+    setSending(true);
+    setError('');
+    try {
+      const response = await fetch('/api/practice/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ source: 'LESSON_BANK', lessonId: target.lessonId, skillId: target.skillId, total: 6 }),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? 'Could not start practice.');
+      router.push(`/student/practice/${payload.data.session.id}`);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : 'Could not start practice.');
+      setSending(false);
+    }
+  }
 
   useEffect(() => {
     if (!open || loaded) return;
@@ -151,6 +175,11 @@ export function TutorPanel({ practiceQuestionId, lessonId, heading = 'Ask Tuklas
                     : message.label ?? (message.source === 'AUTOMATIC' ? 'Automatic hint (not AI)' : 'Ask Tuklas (AI)')}
                 </span>
                 <p>{message.content}</p>
+                {message.role === 'assistant' && message.practice && (
+                  <button type="button" className="quiet-button" disabled={sending} onClick={() => startTargetedPractice(message.practice!)}>
+                    Practise “{message.practice.skillName}”
+                  </button>
+                )}
                 {message.role === 'assistant' && message.nextStep && (
                   <p className="tutor-next" style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0e3b34' }}>
                     {message.nextStep}
@@ -170,6 +199,15 @@ export function TutorPanel({ practiceQuestionId, lessonId, heading = 'Ask Tuklas
               </button>
             ))}
           </div>
+
+          <VoiceControls
+            onTranscript={(heard) => setText(heard)}
+            latestReply={(() => {
+              const last = [...messages].reverse().find((m) => m.role === 'assistant');
+              return last ? { id: last.id, content: last.content } : null;
+            })()}
+            disabled={sending}
+          />
 
           <form onSubmit={submit} className="inline-form" aria-label="Ask a question">
             <label htmlFor={`${panelId}-input`}>Your question</label>

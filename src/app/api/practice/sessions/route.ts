@@ -12,6 +12,8 @@ import { AppError } from '../../../../lib/errors';
 const lessonBankSchema = z.object({
   source: z.literal('LESSON_BANK'),
   lessonId: z.string().trim().min(1),
+  /** Focus the session on one skill of the lesson (targeted practice). */
+  skillId: z.string().trim().min(1).optional(),
   total: z.number().int().positive().max(50).default(10),
 });
 
@@ -71,6 +73,7 @@ export async function POST(request: Request) {
     if (parsed.data.source === 'LESSON_BANK') {
       const practiceSession = await PracticeService.startLessonBankSession(user.id, {
         lessonId: parsed.data.lessonId,
+        skillId: parsed.data.skillId,
         total: parsed.data.total,
       });
       return jsonSuccess({ session: practiceSession }, 201);

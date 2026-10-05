@@ -25,7 +25,8 @@ const saved: Record<string, string | undefined> = {};
 
 type Recorded = { url: string; model: string; messageCount: number; roles: string[]; system: string; user: string; maxTokens: number };
 const requests: Recorded[] = [];
-let replyFor: (index: number) => Response = (index) => json({ content: [{ type: 'text', text: `Tutor reply ${index + 1}: think about the number line.` }] });
+let replyFor: (index: number) => Response = (index) =>
+  json({ content: [{ type: 'text', text: `Tutor reply ${index + 1}: think about the number line.` }], usage: { input_tokens: 1200 + index, output_tokens: 40 } });
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
@@ -50,7 +51,8 @@ beforeEach(() => {
   process.env.ANTHROPIC_API_KEY = 'test-only-key-never-real';
   process.env.ANTHROPIC_MODEL = 'audit-model';
   requests.length = 0;
-  replyFor = (index) => json({ content: [{ type: 'text', text: `Tutor reply ${index + 1}: think about the number line.` }] });
+  replyFor = (index) =>
+    json({ content: [{ type: 'text', text: `Tutor reply ${index + 1}: think about the number line.` }], usage: { input_tokens: 1200 + index, output_tokens: 40 } });
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init: { body: string }) => {
@@ -207,19 +209,40 @@ describe('error paths through the tutor (provider failures never reach the stude
   });
 });
 
-describe('what is NOT recorded about real model usage (production-configuration facts)', () => {
-  it('(known gap) token usage is never stored, so cost per student cannot be measured', async () => {
+describe('cost and reliability records (Phase K hardening)', () => {
+  it('token usage and the model id of every AI call are stored, so cost per student can be measured', async () => {
     const { user, cookie } = await student();
     await ask(cookie, { message: 'hint please', lessonId: INTEGERS });
     const audit = await db.aIInteraction.findFirstOrThrow({ where: { userId: user.id } });
-    expect(audit.promptTokens).toBeNull();
-    expect(audit.outputTokens).toBeNull();
+    expect(audit.promptTokens).toBe(1200);
+    expect(audit.outputTokens).toBe(40);
+    expect(audit.metadata).toMatchObject({ modelId: 'audit-model', source: 'AI' });
   });
 
-  it('(known gap) a failed provider call is attempted exactly once: there is no retry', async () => {
+  it('a provider outage (5xx) is retried once automatically and the student never notices', async () => {
+    replyFor = (index) =>
+      index === 0 ? json({ error: 'x' }, 503) : json({ content: [{ type: 'text', text: 'Think about the signs.' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    const { cookie } = await student();
+    const response = await ask(cookie, { message: 'hint please', lessonId: INTEGERS });
+    expect(JSON.parse(response.text).data.reply.source).toBe('AI');
+    expect(requests).toHaveLength(2);
+  });
+
+  it('a failure that cannot be fixed by trying again (4xx, 429) is NOT retried', async () => {
+    for (const status of [400, 401, 429]) {
+      requests.length = 0;
+      replyFor = () => json({ error: 'x' }, status);
+      const { cookie } = await student();
+      await ask(cookie, { message: 'hint please', lessonId: INTEGERS });
+      expect(requests, `status ${status}`).toHaveLength(1);
+    }
+  });
+
+  it('still only two attempts in total when the provider stays down, then an honest automatic hint', async () => {
     replyFor = () => json({ error: 'x' }, 503);
     const { cookie } = await student();
-    await ask(cookie, { message: 'hint please', lessonId: INTEGERS });
-    expect(requests).toHaveLength(1);
+    const response = await ask(cookie, { message: 'hint please', lessonId: INTEGERS });
+    expect(requests).toHaveLength(2);
+    expect(JSON.parse(response.text).data.reply).toMatchObject({ source: 'AUTOMATIC', label: 'Automatic hint (not AI)' });
   });
 });

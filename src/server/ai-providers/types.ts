@@ -7,7 +7,11 @@ export type AiCompletionInput = {
   /** True when the caller will parse the reply as JSON (providers may enable JSON mode). */
   json: boolean;
   signal: AbortSignal;
+  /** Called once with the usage the provider reports (token counts), when it reports any. */
+  onUsage?: (usage: AiUsage) => void;
 };
+
+export type AiUsage = { model: string | null; inputTokens: number | null; outputTokens: number | null };
 
 /**
  * A text-generation backend. Providers only translate between Tuklas' request shape and

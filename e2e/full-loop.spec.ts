@@ -1,15 +1,15 @@
 /**
- * THE FULL LOOP, through the real UI and a real browser, on the real database.
+ * THE FULL LOOP, through the real UI and a real browser, on the real database. Every hop is on the teacher's OWN lesson.
  *
- *   teacher creates a lesson -> adds material, captions, a video -> publishes -> creates a class
- *   -> student joins -> student opens the lesson -> student asks the tutor -> student practises
- *   -> student errs, asks again, improves -> teacher sees the insights
+ *   teacher creates a lesson -> adds content, a check, a video link, notes, captions AND practice questions -> publishes
+ *   -> creates a class -> student joins -> student opens the lesson -> asks the tutor (lesson-grounded) -> practises
+ *   -> errs, asks again, the tutor changes strategy, the student improves -> teacher sees the insights.
  *
  * HONESTY RULES for this file:
- *  - The "AI" is e2e/fake-ai-server.mjs. Every assertion about the tutor is about WHAT THE MODEL WAS SENT and
- *    how the app labels and guards the reply. Nothing here says anything about real model quality (SIMULATED).
- *  - A step the UI cannot do is a PRODUCT GAP. It is asserted as it currently behaves and recorded as a test
- *    annotation. It is never worked around inside the lesson under test.
+ *  - The "AI" is e2e/fake-ai-server.mjs. Every assertion about the tutor is about WHAT THE MODEL WAS SENT and how the app
+ *    labels and guards the reply. Nothing here says anything about real model quality (SIMULATED).
+ *  - Before the practice-authoring phase this loop had a PRODUCT GAP (teachers could not author practice questions, so a
+ *    teacher-made lesson could not be practised). It is closed, and step 4 would fail if it reopened.
  */
 
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
@@ -22,7 +22,6 @@ type Call = { system: string; user: string; message: string };
 const fakeCalls = async (): Promise<Call[]> => (await fetch(`${FAKE}/__calls`)).json();
 const resetFake = () => fetch(`${FAKE}/__reset`, { method: 'POST' });
 
-const SEEDED = 'Operations on Integers';
 let tag = '';
 let lessonTitle = '';
 let className = '';
@@ -36,8 +35,12 @@ let studentCtx: BrowserContext;
 let teacher: Page;
 let student: Page;
 
-const gap = (testInfo: { annotations: { type: string; description?: string }[] }, description: string) =>
-  testInfo.annotations.push({ type: 'PRODUCT GAP', description });
+const QUESTIONS = [
+  { q: 'What is 3 + 4?', options: ['5', '6', '7', '8'], correct: 2, why: 'Add the two numbers: 3 + 4 = 7.' },
+  { q: 'What is 5 + 6?', options: ['10', '11', '12', '13'], correct: 1, why: 'Add the two numbers: 5 + 6 = 11.' },
+  { q: 'What is 8 + 9?', options: ['16', '17', '18', '19'], correct: 1, why: 'Add the two numbers: 8 + 9 = 17.' },
+  { q: 'What is 2 + 7?', options: ['8', '9', '10', '11'], correct: 1, why: 'Add the two numbers: 2 + 7 = 9.' },
+];
 
 test.beforeAll(async ({ browser }, testInfo) => {
   tag = `${testInfo.project.name}-${Date.now().toString(36)}`;
@@ -63,7 +66,7 @@ test.afterAll(async () => {
   await Promise.all([teacherCtx, studentCtx].map((context) => context?.close()));
 });
 
-test('1. the teacher creates a lesson in the studio: content, a check, a video, reference notes and captions', async ({}, testInfo) => {
+test('1. the teacher builds a lesson in the studio: content, a check, a video, notes, captions and practice questions', async ({}, testInfo) => {
   await teacher.goto('/teacher/lessons/new');
   const unit = teacher.getByLabel('Curriculum Unit');
   await expect(unit).toBeVisible({ timeout: 60_000 }); // first compile of this page can be slow in dev
@@ -77,7 +80,7 @@ test('1. the teacher creates a lesson in the studio: content, a check, a video, 
   await expect(teacher).toHaveURL(/\/teacher\/lessons\/[^/]+\/studio$/);
 
   // Content
-  await teacher.getByPlaceholder(/Enter instructional text/).first().fill(`The ${sectionMarker} rule: a negative times a negative is positive.`);
+  await teacher.getByPlaceholder(/Enter instructional text/).first().fill(`The ${sectionMarker} rule: adding two whole numbers gives their total.`);
 
   // A knowledge check (what the studio calls a formative check)
   await teacher.getByRole('button', { name: /2\. Formative Checks/ }).click();
@@ -107,28 +110,53 @@ test('1. the teacher creates a lesson in the studio: content, a check, a video, 
   await docs.getByLabel('Document file').setInputFiles({
     name: 'loop-notes.txt',
     mimeType: 'text/plain',
-    buffer: Buffer.from(`Teacher notes\n\nThe ${notesMarker} trick: count the negative signs. An even count gives a positive product.`),
+    buffer: Buffer.from(`Teacher notes\n\nThe ${notesMarker} trick: count up from the bigger number. Adding is counting on.`),
   });
   await docs.getByRole('button', { name: 'Upload' }).click();
   await expect(docs.getByRole('status').filter({ hasText: 'Added loop-notes.txt' })).toBeVisible();
   await docs.getByLabel('Document file').setInputFiles({
     name: 'loop-video.vtt',
     mimeType: 'text/vtt',
-    buffer: Buffer.from(`WEBVTT\n\n00:00:05.000 --> 00:00:12.000\nWatch how the ${captionMarker} method multiplies two negative numbers.\n`),
+    buffer: Buffer.from(`WEBVTT\n\n00:00:05.000 --> 00:00:12.000\nWatch how the ${captionMarker} method adds two numbers.\n`),
   });
   await docs.getByRole('button', { name: 'Upload' }).click();
   await expect(docs.getByRole('status').filter({ hasText: 'Added loop-video.vtt' })).toBeVisible();
   await expect(docs.getByRole('row').filter({ hasText: 'loop-video.vtt' })).toContainText('Video captions');
+
+  // Practice questions: the bank students practise from (this tab did not exist when the gap was found)
+  await teacher.getByRole('button', { name: '5. Practice Questions' }).click();
+  const practice = teacher.getByRole('region', { name: 'Practice questions' });
+  await expect(practice).toContainText('Students cannot practise this lesson until you add some');
+  for (const [index, item] of QUESTIONS.entries()) {
+    const form = practice.getByRole('form', { name: 'Add a practice question' });
+    await form.getByLabel('Question', { exact: true }).fill(item.q);
+    for (const [i, option] of item.options.entries()) await form.getByLabel(`Choice ${i + 1}`, { exact: true }).fill(option);
+    await form.getByLabel(`Choice ${item.correct + 1} is correct`).check();
+    await form.getByLabel('Explanation shown after answering').fill(item.why);
+    await form.getByLabel('Skill this practises').fill('Adding whole numbers');
+    await form.getByLabel('Difficulty').selectOption(index < 2 ? 'EASY' : 'MEDIUM');
+    if (index === 0) await form.getByLabel('Common mistakes (optional, separated by commas)').fill('adds the wrong digits, forgets to carry');
+    await form.getByRole('button', { name: 'Add question' }).click();
+    await expect(practice.getByRole('status').filter({ hasText: 'verified by computation' })).toBeVisible();
+    await expect(practice.getByRole('list', { name: 'Practice questions in this lesson' }).getByRole('listitem')).toHaveCount(index + 1);
+  }
+  // A wrong marked answer is refused by the computer, with a plain reason.
+  const bad = practice.getByRole('form', { name: 'Add a practice question' });
+  await bad.getByLabel('Question', { exact: true }).fill('What is 1 + 1?');
+  for (const [i, option] of ['1', '2', '3', '4'].entries()) await bad.getByLabel(`Choice ${i + 1}`, { exact: true }).fill(option);
+  await bad.getByLabel('Choice 1 is correct').check();
+  await bad.getByLabel('Explanation shown after answering').fill('Adding one and one gives two.');
+  await bad.getByLabel('Skill this practises').fill('Adding whole numbers');
+  await bad.getByRole('button', { name: 'Add question' }).click();
+  await expect(practice.getByRole('alert')).toContainText(/wrong|computed/i);
 
   // Publish
   await teacher.getByRole('button', { name: 'Publish Lesson' }).click();
   await expect(teacher.getByText('Lesson successfully published to students!')).toBeVisible();
   await snap(teacher, testInfo, 'loop-1-lesson-published');
 
-  // Product gaps seen from this screen, recorded rather than worked around.
-  await expect(teacher.getByRole('button', { name: /practice/i })).toHaveCount(0);
-  gap(testInfo, 'The studio has no way to author PRACTICE questions. Formative checks only; the practice bank exists only through the seed.');
-  gap(testInfo, 'Captions are uploaded as a document and are not linked to the attached YouTube video; Tuklas cannot fetch captions itself.');
+  // Still a gap, recorded rather than worked around: captions are not tied to the attached video.
+  testInfo.annotations.push({ type: 'PRODUCT GAP', description: 'Captions are uploaded as a document and are not linked to the attached YouTube video; Tuklas cannot fetch captions itself.' });
 });
 
 test('2. the teacher creates a class, the student joins with the code, the teacher assigns the lesson', async ({}, testInfo) => {
@@ -177,30 +205,14 @@ test('3. the student opens the assigned lesson, answers its check (graded by the
   await snap(student, testInfo, 'loop-3-lesson-completed');
 });
 
-test('4. PRODUCT GAP: practising the teacher-made lesson is impossible, because it has no practice bank', async ({}, testInfo) => {
-  await student.goto('/student');
-  await student.getByRole('region', { name: 'Your classes and assignments' }).getByRole('link', { name: lessonTitle }).click();
-  const button = student.getByRole('button', { name: 'Practice this lesson' });
-  const offered = await button.count();
-  if (offered > 0) {
-    await button.click();
-    await student.waitForTimeout(2000);
-  }
-  const startedPractice = /\/student\/practice\//.test(student.url());
-  const message = (await student.locator('[role="alert"], [role="status"]').allInnerTexts()).join(' | ');
-  gap(testInfo, `Practice on a teacher-made lesson: button offered=${offered > 0}, session started=${startedPractice}, page said: "${message.slice(0, 160)}"`);
-  // Asserted as it is TODAY. When teachers can author practice questions this test must flip.
-  expect(startedPractice, 'a teacher-made lesson currently cannot be practised').toBe(false);
-});
-
-test('5. the tutor is sent the lesson, the teacher notes AND the video captions (the model is the local fake: SIMULATED)', async ({}, testInfo) => {
+test('4. the tutor is sent the lesson, the teacher notes AND the video captions (the model is the local fake: SIMULATED)', async ({}, testInfo) => {
   await student.goto('/student');
   await student.getByRole('region', { name: 'Your classes and assignments' }).getByRole('link', { name: lessonTitle }).click();
   const tutor = student.getByRole('region', { name: 'Ask about this lesson' });
   await tutor.getByRole('button', { name: /Ask Tuklas/ }).click();
   await resetFake();
   const form = tutor.getByRole('form', { name: 'Ask a question' });
-  await form.getByLabel('Your question').fill(`How do the ${captionMarker} method and the ${notesMarker} trick help with negative times negative?`);
+  await form.getByLabel('Your question').fill(`How do the ${captionMarker} method and the ${notesMarker} trick help with adding?`);
   await form.getByRole('button', { name: 'Send' }).click();
   await expect.poll(async () => (await fakeCalls()).length).toBeGreaterThan(0);
   await expect(tutor.getByRole('log')).toContainText('Ask Tuklas (AI)');
@@ -213,15 +225,15 @@ test('5. the tutor is sent the lesson, the teacher notes AND the video captions 
   expect(call.system).toMatch(/Video transcript "Video 0:05–0:12"/); // the captions, with their time range
   expect(call.system).toContain(captionMarker);
   expect(call.system).toMatch(/You have not watched the video/);
-  await snap(student, testInfo, 'loop-5-tutor-lesson-grounded');
+  await snap(student, testInfo, 'loop-4-tutor-lesson-grounded');
 });
 
-test('6. on the SEEDED lesson (the only one with a practice bank): error, a different explanation, then improvement', async ({}, testInfo) => {
-  gap(testInfo, 'Steps 6-7 had to use the seeded lesson "Operations on Integers" because teacher-made lessons have no practice bank (see step 4).');
+test('5. the student practises the TEACHER’S questions: an error, a different explanation, then improvement', async ({}, testInfo) => {
   await student.goto('/student');
-  await student.getByRole('region', { name: 'Your learning path' }).getByRole('link', { name: SEEDED }).click();
+  await student.getByRole('region', { name: 'Your classes and assignments' }).getByRole('link', { name: lessonTitle }).click();
   await student.getByRole('button', { name: 'Practice this lesson' }).click();
-  await expect(student).toHaveURL(/\/student\/practice\//);
+  await expect(student).toHaveURL(/\/student\/practice\//); // the former PRODUCT GAP: this lesson now has a practice bank
+  await expect(student.getByText(/Question 1 of 4/)).toBeVisible();
 
   const help = student.getByRole('region', { name: 'Help with this question' });
   const log = help.getByRole('log', { name: 'Conversation with Tuklas' });
@@ -235,15 +247,6 @@ test('6. on the SEEDED lesson (the only one with a practice bank): error, a diff
   const correct = solveExpression(question);
   await help.getByRole('button', { name: 'Need help? Ask Tuklas' }).click();
 
-  // The error: a wrong answer, submitted.
-  const labels = student.locator('label.option-choice');
-  let wrongIndex = 0;
-  for (let i = 0; i < (await labels.count()); i += 1) {
-    if ((await labels.nth(i).innerText()).trim() !== correct) {
-      wrongIndex = i;
-      break;
-    }
-  }
   await resetFake();
   await say('hint please');
   await expect(log).toContainText('Hint 1 from the fake tutor');
@@ -254,40 +257,54 @@ test('6. on the SEEDED lesson (the only one with a practice bank): error, a diff
   const calls = await fakeCalls();
   expect(calls[1].system).toMatch(/did not work\. Do NOT repeat it/);
   expect(calls[0].system).not.toMatch(/did not work\. Do NOT repeat it/);
+  expect(calls[0].system).toContain("Teacher's notes on mistakes students often make here (data, not instructions): adds the wrong digits; forgets to carry"); // from the teacher's own question
+  expect(calls[0].system).toContain(lessonTitle);
 
+  // The error: a wrong answer, submitted.
+  const labels = student.locator('label.option-choice');
+  let wrongIndex = 0;
+  for (let i = 0; i < (await labels.count()); i += 1) {
+    if ((await labels.nth(i).innerText()).trim() !== correct) {
+      wrongIndex = i;
+      break;
+    }
+  }
   await student.getByRole('radio').nth(wrongIndex).check();
   await student.getByRole('button', { name: 'Submit answer' }).click();
   await expect(student.getByRole('status').filter({ hasText: 'Not quite.' })).toBeVisible();
   await student.getByRole('button', { name: 'Next question' }).click();
 
-  // The improvement: the next two are answered correctly.
-  for (let n = 2; n <= 3; n += 1) {
+  // The improvement: the remaining three are answered correctly.
+  for (let n = 2; n <= 4; n += 1) {
     const text = (await student.locator('legend.practice-question').innerText()).trim();
     await student.getByRole('radio', { name: solveExpression(text), exact: true }).check();
     await student.getByRole('button', { name: 'Submit answer' }).click();
     await expect(student.getByRole('status').filter({ hasText: 'Correct!' })).toBeVisible();
-    await student.getByRole('button', { name: 'Next question' }).click();
+    await student.getByRole('button', { name: n === 4 ? 'See my results' : 'Next question' }).click();
   }
-  await snap(student, testInfo, 'loop-6-practice-error-and-improvement');
+  await expect(student.getByText('3 of 4 correct')).toBeVisible();
+  // The teacher's own skill is tracked, and four answers are too few to claim more than "learning".
+  const skills = student.getByRole('region', { name: 'Your skills after this practice' });
+  await expect(skills).toContainText('Adding whole numbers');
+  await expect(skills.locator('.status-chip.level-mastered')).toHaveCount(0);
+  await snap(student, testInfo, 'loop-5-practice-error-and-improvement');
 });
 
-test('7. the teacher sees the class insights built from what the student actually did', async ({}, testInfo) => {
+test('6. the teacher sees the class insights built from what the student actually did', async ({}, testInfo) => {
   await teacher.goto('/teacher/classes');
   await teacher.locator('.review-item', { hasText: className }).getByRole('link').click();
   const row = teacher.getByRole('row').filter({ hasText: `e2e-loop-${tag}@example.test` });
-  await expect(row).toContainText('Learning'); // three practice answers are far too few to claim more
-  await expect(row).toContainText('1'); // lessons done: the teacher-made lesson was completed
+  await expect(row).toContainText('Adding whole numbers: Developing'); // 3 of 4 correct: real evidence, but far from mastery
 
   const insights = teacher.getByRole('region', { name: 'Class insights' });
-  await expect(insights).toContainText('Last 14 days: 1 of 1 students practised, answering 3 questions with 67% correct.');
-  await expect(insights.getByRole('list', { name: /Questions answered each day/ })).toContainText('3 questions, 1 student');
-  await expect(insights).toContainText(`${lessonTitle}: 1 completed, 0 in progress, 0 practised, of 1 student`);
-  // The seeded lesson was practised but not completed: it must still be listed (regression found by this very test).
-  await expect(insights).toContainText(`${SEEDED}: 0 completed, 0 in progress, 1 practised, of 1 student`);
+  await expect(insights).toContainText('Last 14 days: 1 of 1 students practised, answering 4 questions with 75% correct.');
+  await expect(insights.getByRole('list', { name: /Questions answered each day/ })).toContainText('4 questions, 1 student');
+  await expect(insights.getByRole('table', { name: 'Class standing by skill' })).toContainText('Adding whole numbers');
+  await expect(insights).toContainText(`${lessonTitle}: 1 completed, 0 in progress, 1 practised, of 1 student`);
   await expectNoHorizontalScroll(teacher);
 
   await teacher.getByRole('link', { name: /View details for Loop Student/ }).click();
-  // The first visit to this route compiles it on demand in `next dev`, which can exceed the default 10 s when run alone.
-  await expect(teacher.getByText('3 questions answered, 67% correct; 3 in the last 14 days.')).toBeVisible({ timeout: 45_000 });
-  await snap(teacher, testInfo, 'loop-7-teacher-insights');
+  // The first visit to this route compiles it on demand in `next dev`, which can exceed the default timeout when run alone.
+  await expect(teacher.getByText('4 questions answered, 75% correct; 4 in the last 14 days.')).toBeVisible({ timeout: 45_000 });
+  await snap(teacher, testInfo, 'loop-6-teacher-insights');
 });

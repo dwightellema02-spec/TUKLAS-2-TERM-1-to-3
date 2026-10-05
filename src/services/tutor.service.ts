@@ -24,8 +24,10 @@ import { buildTutorPrompt, sanitizeStudentMessage, type PromptLesson, type Promp
 import { checkTutorReply, statesAnswer, type GuardReason } from '../server/tutor/guard';
 import { DocumentService } from './document.service';
 import { automaticCheckResponse, automaticHint } from '../server/tutor/fallback';
+import { selectLessonContext } from '../server/tutor/context';
 import { decideTeaching, nextStepFor, parseState, wordSimilarity, type TeachingAction } from '../server/tutor/policy';
 import type { Prisma } from '@prisma/client';
+import type { AiUsage } from '../server/ai-providers/types';
 
 /** A model reply this similar (word overlap) to the previous tutor reply is treated as a repeat and not shown. */
 const REPEAT_SIMILARITY = 0.85;
@@ -50,9 +52,6 @@ export function isAiAvailable(): boolean {
     return false;
   }
 }
-
-const sectionText = (section: { sourceExplanation: string | null; content: string | null }) =>
-  [section.sourceExplanation, section.content].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 
 export class TutorService {
   /** The conversation (and messages) the student already has for a question or lesson. */
@@ -107,7 +106,7 @@ export class TutorService {
     const questionRow = practiceQuestionId
       ? await db.practiceQuestion.findFirst({
           where: { id: practiceQuestionId, session: { studentId } },
-          include: { answer: true, session: { select: { lessonId: true } } },
+          include: { answer: true, session: { select: { lessonId: true } }, quizQuestion: { select: { misconceptionTags: true } } },
         })
       : null;
     if (practiceQuestionId && !questionRow) throw new NotFoundError('Question not found.');
@@ -119,22 +118,24 @@ export class TutorService {
           select: {
             title: true,
             objectives: { orderBy: { position: 'asc' }, select: { description: true } },
-            sections: { orderBy: { position: 'asc' }, select: { heading: true, sourceExplanation: true, content: true } },
+            sections: { orderBy: { position: 'asc' }, select: { heading: true, type: true, sourceExplanation: true, content: true, metadata: true } },
             vocabulary: { select: { term: true, definition: true } },
           },
         })
       : null;
     if (lessonId && !lessonRow) throw new NotFoundError('Lesson not found.');
 
+    // Only the parts of the lesson that matter for THIS question are sent (see server/tutor/context.ts).
     const lesson: PromptLesson | null = lessonRow
-      ? {
-          title: lessonRow.title,
-          objectives: lessonRow.objectives.map((o) => o.description),
-          sections: lessonRow.sections
-            .map((s) => ({ heading: s.heading, text: sectionText(s) }))
-            .filter((s) => s.text.length > 0),
-          vocabulary: lessonRow.vocabulary,
-        }
+      ? selectLessonContext(
+          {
+            title: lessonRow.title,
+            objectives: lessonRow.objectives.map((o) => o.description),
+            sections: lessonRow.sections,
+            vocabulary: lessonRow.vocabulary,
+          },
+          `${message} ${questionRow?.question ?? ''}`,
+        )
       : null;
 
     // ---- 2. Interpret intent and decide the rung ----
@@ -178,6 +179,7 @@ export class TutorService {
             }
           : null,
         revealed: answered ? { correctText, explanation: questionRow.explanation } : null,
+        teacherNotes: questionRow.quizQuestion?.misconceptionTags ?? [],
       };
     }
 
@@ -217,6 +219,12 @@ export class TutorService {
       ladder: decision,
     });
 
+    // The skill to practise next: the one in question, otherwise this student's weakest skill in the lesson.
+    const LEVELS = ['NOT_STARTED', 'LEARNING', 'DEVELOPING', 'PROFICIENT', 'MASTERED'];
+    // "Weakest" means weakest WITH EVIDENCE: a skill the student has never tried is not a demonstrated weakness.
+    const byLevel = [...(picture?.skills ?? [])].sort((x, y) => LEVELS.indexOf(x.status) - LEVELS.indexOf(y.status));
+    const practiceTarget = focus ?? byLevel.find((s) => s.status !== 'NOT_STARTED') ?? byLevel[0] ?? null;
+
     // ---- 4. Ask the AI, 5. check the reply ----
     const isProposedAnswer = intent === 'CHECK_ANSWER' && Boolean(questionRow) && !answered;
 
@@ -236,11 +244,12 @@ export class TutorService {
     let content = '';
     let fallbackReason: string | null = null;
     let model = 'none';
+    let usage = null as AiUsage | null;
     const startedAt = Date.now();
 
     try {
       model = getAiProvider().name;
-      const reply = (await requestAiText({ system: prompt.system, user: prompt.user, maxTokens: 450 })).trim();
+      const reply = (await requestAiText({ system: prompt.system, user: prompt.user, maxTokens: 450, onUsage: (reported) => (usage = reported) })).trim();
       const verdict = checkTutorReply({
         reply,
         secretAnswers: questionRow && !decision.mayRevealAnswer ? [correctText] : [],
@@ -319,8 +328,10 @@ export class TutorService {
           requestType: 'TUTOR',
           model,
           latencyMs,
+          promptTokens: usage?.inputTokens ?? null,
+          outputTokens: usage?.outputTokens ?? null,
           success: source === 'AI',
-          metadata: { rung: decision.rung, intent, source, fallbackReason, answered, action: plan.action, strategy: plan.strategy },
+          metadata: { rung: decision.rung, intent, source, fallbackReason, answered, action: plan.action, strategy: plan.strategy, modelId: usage?.model ?? null },
         },
       });
       return { conversationId: conversation.id, assistant };
@@ -336,7 +347,12 @@ export class TutorService {
         rung: questionRow ? decision.rung : null,
         rungLabel: questionRow ? RUNG_LABELS[decision.rung] ?? null : null,
         action: plan.action,
-        nextStep: nextStepFor(plan.action, focus?.skill.name ?? null),
+        nextStep: nextStepFor(plan.action, practiceTarget?.skill.name ?? null),
+        // Present only when the policy recommends practice: lets the page start a session on that very skill.
+        practice:
+          (plan.action === 'RECOMMEND_PRACTICE' || plan.action === 'INCREASE_DIFFICULTY') && practiceTarget && lessonId
+            ? { lessonId, skillId: practiceTarget.skill.id, skillName: practiceTarget.skill.name }
+            : null,
         label: source === 'AUTOMATIC' ? AUTOMATIC_LABEL : AI_LABEL,
         createdAt: saved.assistant.createdAt,
       },

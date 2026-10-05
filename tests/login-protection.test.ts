@@ -147,8 +147,10 @@ describe('IP-independent and per-address limits', () => {
     for (let i = 0; i < 25; i += 1) {
       statuses.push((await attempt(email, 'whatever-123', `192.0.2.${i}`)).status);
     }
-    expect(statuses.slice(0, 20).every((status) => status === 401)).toBe(true);
-    expect(statuses.slice(20).every((status) => status === 429)).toBe(true);
+    // An unknown email locks after the same number of failures as a real account does, so the lock cannot be used to
+    // find out which accounts exist (the per-account limit of 20 a minute still stands behind it).
+    expect(statuses.slice(0, MAX_FAILED_LOGINS).every((status) => status === 401)).toBe(true);
+    expect(statuses.slice(MAX_FAILED_LOGINS).every((status) => status === 429)).toBe(true);
   });
 
   it('limits password spraying from one real address even with spoofed prefixes', async () => {

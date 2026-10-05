@@ -196,17 +196,23 @@ describe('AI API', () => {
         }),
       }),
     );
+    const stored = await db.practiceQuestion.findFirstOrThrow({ where: { sessionId: practiceSession.id } });
+    await db.practiceAnswer.create({
+      data: {
+        sessionId: practiceSession.id,
+        questionId: stored.id,
+        question: stored.question,
+        options: stored.options as string[],
+        correctIndex: stored.correctIndex,
+        selectedIndex: (stored.correctIndex + 1) % 4,
+        correct: false,
+      },
+    });
     const mistake = await analyzeMistake(
       new Request('http://localhost/api/ai/analyze-mistake', {
         method: 'POST',
         headers: { 'content-type': 'application/json', Cookie: cookie },
-        body: JSON.stringify({
-          question: 'What process helps plants make food?',
-          options: generatedQuestion.options,
-          correctIndex: 0,
-          selectedIndex: 1,
-          topic: 'Photosynthesis',
-        }),
+        body: JSON.stringify({ practiceQuestionId: stored.id }),
       }),
     );
 
@@ -222,6 +228,7 @@ describe('AI API', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(anthropicResponse(null, 503))
+      .mockResolvedValueOnce(anthropicResponse(null, 503)) // the one automatic retry
       .mockRejectedValueOnce(new DOMException('Timed out', 'AbortError'));
     vi.stubGlobal('fetch', fetchMock);
     const cookie = await registeredUser();

@@ -36,6 +36,8 @@ export type StartLessonBankSessionInput = {
   lessonId: string;
   /** Maximum number of questions (the session uses fewer if the bank is smaller). */
   total: number;
+  /** Targeted practice: only questions that practise this skill. */
+  skillId?: string;
 };
 
 /** Question types that are answered by choosing an option. */
@@ -91,11 +93,14 @@ export class PracticeService {
         lessonId: lesson.id,
         assessmentId: null,
         questionType: { in: [...OPTION_TYPES] },
+        ...(input.skillId ? { skillId: input.skillId } : {}),
       },
       orderBy: { position: 'asc' },
     });
     if (bank.length === 0) {
-      throw new ConflictError('This lesson has no practice questions yet.');
+      throw new ConflictError(
+        input.skillId ? 'This lesson has no practice questions for that skill yet.' : 'This lesson has no practice questions yet.',
+      );
     }
 
     // How this student has done on each bank question before (via their earlier copies).

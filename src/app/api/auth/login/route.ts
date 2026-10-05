@@ -19,6 +19,34 @@ import {
 } from '../../../../server/rate-limit';
 import { AuthAuditLogger } from '../../../../lib/auth/audit';
 
+/** A real hash of a random secret, made once per process: the work done for accounts that do not exist. */
+let decoy: Promise<string> | null = null;
+const decoyHash = () => (decoy ??= hashPassword(`decoy-${Math.random().toString(36).slice(2)}-${Date.now()}`));
+
+/**
+ * Failed attempts for emails that have no account. Without this an existing account locks after repeated failures
+ * (HTTP 429) while a made-up email keeps answering 401, which tells an attacker which accounts exist. Best effort and
+ * per process; the real accounts' lock is stored in the database.
+ */
+const unknownFailures = new Map<string, { count: number; lockedUntil: number }>();
+function unknownLocked(email: string): boolean {
+  const entry = unknownFailures.get(email);
+  return Boolean(entry && entry.lockedUntil > Date.now());
+}
+function noteUnknownFailure(email: string) {
+  const now = Date.now();
+  if (unknownFailures.size > 5_000) {
+    for (const [key, entry] of unknownFailures) if (entry.lockedUntil <= now && entry.count === 0) unknownFailures.delete(key);
+  }
+  const entry = unknownFailures.get(email) ?? { count: 0, lockedUntil: 0 };
+  entry.count += 1;
+  if (entry.count >= MAX_FAILED_LOGINS) {
+    entry.count = 0;
+    entry.lockedUntil = now + LOCKOUT_MS;
+  }
+  unknownFailures.set(email, entry);
+}
+
 const loginSchema = z.object({
   email: z.string().trim().email('Please enter a valid email address.'),
   password: z.string().min(1, 'Password is required.'),
@@ -56,7 +84,7 @@ export async function POST(request: Request) {
 
     // A locked account refuses every password attempt (even a correct one) until the
     // lock expires, so the lock cannot be used as a password oracle.
-    if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+    if ((user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) || (!user && unknownLocked(normalizedEmail))) {
       AuthAuditLogger.log({
         event: 'LOGIN_FAILURE',
         email: normalizedEmail,
@@ -67,10 +95,15 @@ export async function POST(request: Request) {
       return jsonError('Too many failed attempts. Please try again later.', 429);
     }
 
+    // Always do one password derivation, even for an unknown or inactive account, so the response time
+    // does not reveal whether an account exists.
     const passwordOk =
-      !!user && user.isActive && (await verifyPassword(password, user.passwordHash));
+      !!user && user.isActive
+        ? await verifyPassword(password, user.passwordHash)
+        : (await verifyPassword(password, await decoyHash()), false);
 
     if (!user || !passwordOk) {
+      if (!user) noteUnknownFailure(normalizedEmail);
       if (user && user.isActive) {
         const updated = await db.user.update({
           where: { id: user.id },

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AiServiceError } from './ai-errors';
 import { getAiProvider } from './ai-providers';
+import type { AiUsage } from './ai-providers/types';
 
 export { AiServiceError } from './ai-errors';
 
@@ -50,11 +51,16 @@ function parseJsonText(text: string) {
  * and the mapping of failures to honest HTTP errors. When the provider is not
  * configured the caller gets a 503 — there is never a made-up reply.
  */
+/** One quick second try for a provider outage or a dropped connection; never for 4xx, 429 or a timeout. */
+const RETRY_DELAY_MS = 300;
+
 export async function requestAiText<T = string>(input: {
   system: string;
   user: string;
   maxTokens: number;
   responseSchema?: z.ZodType<T>;
+  /** Receives the provider's reported token usage and model id (for cost and audit records). */
+  onUsage?: (usage: AiUsage) => void;
 }): Promise<T> {
   const provider = getAiProvider();
   if (!provider.isConfigured()) {
@@ -65,13 +71,25 @@ export async function requestAiText<T = string>(input: {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const text = await provider.complete({
-      system: input.system,
-      user: input.user,
-      maxTokens: input.maxTokens,
-      json: Boolean(input.responseSchema),
-      signal: controller.signal,
-    });
+    const attempt = () =>
+      provider.complete({
+        system: input.system,
+        user: input.user,
+        maxTokens: input.maxTokens,
+        json: Boolean(input.responseSchema),
+        signal: controller.signal,
+        onUsage: input.onUsage,
+      });
+    let text: string;
+    try {
+      text = await attempt();
+    } catch (first) {
+      const dropped = first instanceof TypeError; // fetch() rejects with a TypeError when the connection fails
+      const retryable = (first instanceof AiServiceError && first.retryable) || dropped;
+      if (!retryable || controller.signal.aborted) throw first;
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      text = await attempt();
+    }
 
     if (!input.responseSchema) {
       return text as T;

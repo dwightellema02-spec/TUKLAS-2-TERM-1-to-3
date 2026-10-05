@@ -17,6 +17,7 @@
     "db:validate": "prisma validate",
     "db:check": "tsx scripts/check-db.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "content:load": "tsx scripts/load-curriculum.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy"
   },

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { parseYouTubeUrl } from '../../../../../lib/youtube';
+import { LessonPracticeAuthoring } from '../../../../../components/lesson-practice-authoring';
 import { LessonDocuments } from '../../../../../components/lesson-documents';
 import { WorkedExampleMetadata } from '../../../../../types/domain';
 
@@ -82,7 +83,7 @@ export default function LessonStudioPage({
   const [lessonTitle, setLessonTitle] = useState('');
   const [lessonDescription, setLessonDescription] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'sections' | 'checks' | 'videos' | 'documents'>('sections');
+  const [activeTab, setActiveTab] = useState<'sections' | 'checks' | 'videos' | 'documents' | 'practice'>('sections');
   const [loading, setLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -562,7 +563,25 @@ export default function LessonStudioPage({
         >
           4. Reference Documents
         </button>
+        <button
+          onClick={() => setActiveTab('practice')}
+          style={{
+            padding: '10px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'practice' ? '3px solid #0e3b34' : '3px solid transparent',
+            color: activeTab === 'practice' ? '#0e3b34' : '#475569',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            cursor: 'pointer',
+          }}
+        >
+          5. Practice Questions
+        </button>
       </nav>
+
+      {/* TAB 5: PRACTICE QUESTIONS (the bank students practise from) */}
+      {activeTab === 'practice' && <LessonPracticeAuthoring lessonId={lessonId} />}
 
       {/* TAB 4: REFERENCE DOCUMENTS (PDF / Word / text for the AI tutor) */}
       {activeTab === 'documents' && <LessonDocuments lessonId={lessonId} />}

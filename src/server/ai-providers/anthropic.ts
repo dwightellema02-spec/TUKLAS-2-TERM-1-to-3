@@ -16,10 +16,11 @@ export const anthropicProvider: AiProvider = {
     return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
   },
 
-  async complete({ system, user, maxTokens, signal }) {
+  async complete({ system, user, maxTokens, signal, onUsage }) {
     const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
     if (!apiKey) throw new AiServiceError('AI service is not configured.', 503);
 
+    const model = process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL;
     const response = await fetch(messagesUrl(), {
       method: 'POST',
       headers: {
@@ -28,7 +29,7 @@ export const anthropicProvider: AiProvider = {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL?.trim() || DEFAULT_MODEL,
+        model,
         max_tokens: maxTokens,
         system,
         messages: [{ role: 'user', content: user }],
@@ -40,12 +41,15 @@ export const anthropicProvider: AiProvider = {
       throw new AiServiceError(
         'The AI service rejected the request.',
         response.status === 429 ? 429 : 502,
+        response.status >= 500, // a provider outage may pass on a second try; a 4xx will not
       );
     }
 
     const payload = (await response.json()) as {
       content?: Array<{ type?: string; text?: string }>;
+      usage?: { input_tokens?: number; output_tokens?: number };
     };
+    onUsage?.({ model, inputTokens: payload.usage?.input_tokens ?? null, outputTokens: payload.usage?.output_tokens ?? null });
     const text = payload.content?.find((item) => item.type === 'text')?.text?.trim();
     if (!text) throw new AiServiceError('The AI returned an empty response.', 502);
     return text;
