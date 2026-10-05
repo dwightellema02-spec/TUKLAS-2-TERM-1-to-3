@@ -12,6 +12,7 @@
 import { db } from '../server/db';
 import { NotFoundError } from '../lib/errors';
 import { ClassService, type Actor } from './class.service';
+import { ReplyReportService } from './reply-report.service';
 
 export const INSIGHT = {
   /** Length of the activity window, in days. */
@@ -70,7 +71,7 @@ export class ClassInsightsService {
     const ids = members.map((member) => member.userId);
     const since = new Date(now.getTime() - INSIGHT.days * DAY_MS);
 
-    const [answers, mastery, mistakes, progress, practiceSessions] = await Promise.all([
+    const [answers, mastery, mistakes, progress, practiceSessions, reportedReplies] = await Promise.all([
       db.practiceAnswer.findMany({
         where: { session: { studentId: { in: ids } } },
         select: {
@@ -97,6 +98,7 @@ export class ClassInsightsService {
         where: { studentId: { in: ids }, lessonId: { not: null } },
         select: { studentId: true, lesson: { select: { id: true, title: true } } },
       }),
+      ReplyReportService.forStudents(ids),
     ]);
 
     // ---- window summary
@@ -206,6 +208,7 @@ export class ClassInsightsService {
       skills,
       hardestQuestions,
       mistakeCategories,
+      reportedReplies,
       lessons,
       thresholds: { minAttempts: INSIGHT.minAttempts, minStudents: INSIGHT.minStudents, hardBelowPercent: INSIGHT.hardBelow * 100 },
     };

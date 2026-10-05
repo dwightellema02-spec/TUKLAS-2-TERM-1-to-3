@@ -113,6 +113,9 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' '
 
 ---
 
+### Cross-site request protection
+`src/proxy.ts` refuses a POST/PUT/PATCH/DELETE to `/api/*` when the browser marks it `Sec-Fetch-Site: cross-site` or sends an `Origin` that is not this site (403). Requests with neither header (curl, server-to-server) are unaffected. This is in addition to the `SameSite=Lax` cookie.
+
 ## 5. Audit Logging
 
 Authentication events are emitted via `AuthAuditLogger`:

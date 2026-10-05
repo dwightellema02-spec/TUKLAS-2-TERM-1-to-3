@@ -28,11 +28,11 @@ Repository: `tuklas-v2`. Reports for every earlier phase are in `docs/` (`ALL_PH
 
 | | |
 |---|---|
-| Unit (Vitest) | **922 / 922 PASS (51 files)** |
-| Browser (Playwright, Chromium desktop + Pixel 5 emulation) | **100 / 100 PASS (one clean run)** |
+| Unit (Vitest) | **936 / 936 PASS (53 files)** |
+| Browser (Playwright, Chromium desktop + Pixel 5 emulation) | **112 / 112 PASS (one clean run)** |
 | TypeScript / ESLint | clean / clean |
 | Production build | **PASS** |
-| Schema vs migrations (fresh shadow DB) | no difference (15 migrations) |
+| Schema vs migrations (fresh shadow DB) | no difference (16 migrations) |
 | **Live AI (real model)** | **NOT VERIFIED** |
 | Real device / real teacher / real student | **NOT VERIFIED** |
 
@@ -79,7 +79,9 @@ same loader.
 | Token usage and model id stored for every tutor AI call (cost can be measured) | same |
 | `.env.example` is committed (it had been ignored); keys cannot reach a real model during `npm test` | `.gitignore`, `vitest.config.ts` |
 
-**Not done (be aware):** CSRF relies on `SameSite=Lax` cookies only (no Origin/token check); rate limits and the unknown-email lock are
+**Added after the first final report:** a front-door cross-site write check (`src/proxy.ts`, tested over HTTP); student **data export** and **self-service account deletion** (`/student/privacy`, cascades verified); a privacy notice in the tutor; **"Report this reply"**, shown to the class teacher without names; the 16th migration.
+
+**Not done (be aware):** there is no per-form CSRF token (cookie setting + origin check only); rate limits and the unknown-email lock are
 per server process; no backups, restore test, monitoring or alerting; no load or performance test; no privacy notice, consent,
 retention or deletion tool (`PRIVACY_AND_DATA.md`); no per-day or per-class AI budget; three unwired AI endpoints remain
 (`generate-lesson`, `analyze-transcript`, `generate-question`), authenticated and rate-limited but not used by any page and not
@@ -99,7 +101,7 @@ security items above; 144 computed Term 1 practice questions (every answer re-de
 get generic strategy text without a live model); prerequisite review (generic, no skill map); targeted practice (selected from the
 bank, not AI-generated); document intelligence (no OCR); CSRF, rate limiting, analytics at scale.
 
-**MISSING:** consent/privacy/retention tooling; school and tenant model, SSO, roster import; content review workflow; principal or
+**MISSING:** consent capture and retention schedule (export and student deletion now exist); school and tenant model, SSO, roster import; content review workflow; principal or
 division reports; Filipino interface; offline use; monitoring, backups, support process; AI-generated lesson-specific practice.
 
 **NOT VERIFIED:** **a real AI model with this tutor** (no key: the harness `RUN_LIVE_AI=true npm run test:live` is ready and stamps

@@ -93,6 +93,7 @@ model User {
   quizAttempts        QuizAttempt[]
   masteryRecords      MasteryRecord[]
   chatConversations   ChatConversation[]
+  replyReports        ReplyReport[]
   authSessions        AuthSession[]
   lessonProgress      LessonProgress[]
   lessonCheckAttempts LessonCheckAttempt[]
@@ -826,6 +827,23 @@ model ChatMessage {
   strategy       String?
   createdAt      DateTime         @default(now())
   conversation   ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  reports        ReplyReport[]
 
   @@index([conversationId, createdAt])
+}
+
+/// A student's report that a tutor reply was wrong, confusing, unsafe or otherwise bad. Teachers see these (without names).
+model ReplyReport {
+  id        String      @id @default(cuid())
+  messageId String
+  studentId String
+  /// WRONG_MATH | CONFUSING | UNSAFE | OTHER
+  reason    String
+  note      String?
+  createdAt DateTime    @default(now())
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  student   User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, studentId])
+  @@index([createdAt])
 }

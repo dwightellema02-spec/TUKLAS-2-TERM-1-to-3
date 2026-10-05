@@ -26,6 +26,7 @@ type Insights = {
     commonWrongAnswer: { text: string; count: number } | null;
   }[];
   mistakeCategories: { category: string; count: number; unresolved: number; students: number }[];
+  reportedReplies: { total: number; recent: { reason: string; note: string | null; reply: string; at: string }[] };
   lessons: { id: string; title: string; completed: number; inProgress: number; practised: number; studentCount: number }[];
   thresholds: { minAttempts: number; minStudents: number; hardBelowPercent: number };
 };
@@ -39,6 +40,13 @@ export const CATEGORY_LABEL: Record<string, string> = {
   CALCULATION_ERROR: 'Calculation slips',
   CONCEPTUAL: 'Concept not yet understood',
   UNCLASSIFIED: 'Not classified',
+};
+
+const REPORT_LABEL: Record<string, string> = {
+  WRONG_MATH: 'The maths was wrong',
+  CONFUSING: 'It was confusing',
+  UNSAFE: 'It was not appropriate',
+  OTHER: 'Another problem',
 };
 
 const shortDate = (value: string) => new Date(`${value}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
@@ -182,6 +190,27 @@ export function ClassInsightsPanel({ classId }: { classId: string }) {
             Mistake types come from a rule-based check written for integer operations; in other lessons most mistakes show as &quot;Concept not yet
             understood&quot; or &quot;Not classified&quot;.
           </p>
+
+          <h3>Tutor replies students reported</h3>
+          {data.reportedReplies.total === 0 ? (
+            <p className="empty-state">No tutor replies have been reported.</p>
+          ) : (
+            <>
+              <p>
+                {data.reportedReplies.total} {data.reportedReplies.total === 1 ? 'reply was' : 'replies were'} reported by students (names are not shown).
+                Please read them.
+              </p>
+              <ul className="review-list">
+                {data.reportedReplies.recent.map((item, index) => (
+                  <li key={index} className="review-item">
+                    <strong>{REPORT_LABEL[item.reason] ?? item.reason}</strong>
+                    {item.note ? `: “${item.note}”` : ''}
+                    <span className="cell-sub">Tutor said: {item.reply}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
           <h3>Lessons the class has worked on</h3>
           {data.lessons.length === 0 ? (

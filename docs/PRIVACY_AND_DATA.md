@@ -24,16 +24,19 @@ data-sharing agreement with the school are required. None of those exist yet. Th
 | The browser vendor's speech service | The student's **audio**, if they use the microphone button (Chrome, Edge and Safari recognise speech in the vendor's cloud). Tuklas itself never receives or stores audio, only the resulting text | Only when the student presses the microphone button |
 | YouTube | Embedded videos load from youtube.com (see the CSP in `next.config.mjs`) | When a lesson page with a video is opened |
 
-A student can type something personal into the tutor box and it will be stored and sent to the AI provider. The interface does not
-warn about that yet (gap, below).
+A student can type something personal into the tutor box and it will be stored and sent to the AI provider. The tutor panel now
+says "Please do not type personal details", but nothing detects or removes personal details a student types anyway.
 
 ## Gaps (what must be decided or built before real use)
 1. **No consent flow, privacy notice or parent/guardian consent** in the product.
-2. **No retention policy or deletion tool**: conversations and learning records are kept indefinitely. There is no "delete my data"
-   or per-student export. Deleting a user cascades their records in the database, but no UI or procedure exists for it.
+2. **No retention policy**: conversations and learning records are kept indefinitely. BUILT since the first version of this file:
+   a student can **download all their data** and **delete their own account** (password plus the word DELETE; everything cascades,
+   tested) on `/student/privacy`. Not built: teacher and administrator self-deletion (an administrator closes those), a
+   per-student export for a teacher or school, an automatic retention schedule.
 3. **No data-processing agreement** with Anthropic/Google reviewed; provider data-retention and "no training on API data" terms
    must be confirmed by the owner for the plan actually used.
-4. **No warning to students** not to type personal information into the tutor.
+4. ~~No warning to students~~ A short notice now appears in the tutor panel (see above). Students can also **report a bad tutor reply**;
+   the class teacher sees the reply and the reason, never the student's name.
 5. **No log redaction review** of hosting logs (Vercel/Neon) for personal data.
 6. **No backups or restore test** documented (Neon offers point-in-time restore; it has not been configured or tested here).
 7. Rate limits and the account-lockout memory for unknown emails are per server process, not shared.

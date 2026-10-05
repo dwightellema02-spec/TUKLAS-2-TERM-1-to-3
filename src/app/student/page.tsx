@@ -29,6 +29,7 @@ export default async function StudentWorkspacePage() {
       <nav className="app-nav">
         <Link className="brand" href="/">Tuklas<span>V2</span></Link>
         <Link href="/curriculum">Curriculum</Link>
+        <Link href="/student/privacy">My data</Link>
       </nav>
 
       <header style={{ margin: '8px 0 24px' }}>

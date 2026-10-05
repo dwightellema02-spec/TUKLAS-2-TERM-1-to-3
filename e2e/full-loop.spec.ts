@@ -193,9 +193,12 @@ test('3. the student opens the assigned lesson, answers its check (graded by the
   await expect(student.getByText(sectionMarker)).toBeVisible();
 
   const item = student.locator('section:has(h2:text("Knowledge Checks")) > ol > li').first();
-  await item.locator('label', { hasText: /^\s*−8\s*$|^\s*-8\s*$/ }).locator('input').check(); // a wrong choice first
-  await item.getByRole('button', { name: 'Check answer' }).click();
-  await expect(item.getByRole('status')).toContainText('Not quite');
+  // A click made before the page has finished hydrating does nothing: retry the whole interaction until the server's verdict shows.
+  await expect(async () => {
+    await item.locator('label', { hasText: /^\s*−8\s*$|^\s*-8\s*$/ }).locator('input').check(); // a wrong choice first
+    await item.getByRole('button', { name: 'Check answer' }).click();
+    await expect(item.getByRole('status')).toContainText('Not quite', { timeout: 4_000 });
+  }).toPass({ timeout: 40_000 });
   await item.locator('label', { hasText: /^\s*8\s*$/ }).locator('input').check();
   await item.getByRole('button', { name: 'Check answer' }).click();
   await expect(item.getByRole('status')).toContainText('Correct!');
@@ -231,8 +234,11 @@ test('4. the tutor is sent the lesson, the teacher notes AND the video captions 
 test('5. the student practises the TEACHER’S questions: an error, a different explanation, then improvement', async ({}, testInfo) => {
   await student.goto('/student');
   await student.getByRole('region', { name: 'Your classes and assignments' }).getByRole('link', { name: lessonTitle }).click();
-  await student.getByRole('button', { name: 'Practice this lesson' }).click();
-  await expect(student).toHaveURL(/\/student\/practice\//); // the former PRODUCT GAP: this lesson now has a practice bank
+  // A click before the page has hydrated does nothing, so retry until the session starts.
+  await expect(async () => {
+    await student.getByRole('button', { name: 'Practice this lesson' }).click();
+    await expect(student).toHaveURL(/\/student\/practice\//, { timeout: 6_000 }); // the former PRODUCT GAP: this lesson now has a practice bank
+  }).toPass({ timeout: 45_000 });
   await expect(student.getByText(/Question 1 of 4/)).toBeVisible();
 
   const help = student.getByRole('region', { name: 'Help with this question' });

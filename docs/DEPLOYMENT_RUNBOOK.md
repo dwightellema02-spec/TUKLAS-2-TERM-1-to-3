@@ -26,7 +26,7 @@ The original project zip contained a Neon database password and a Vercel token. 
 
 ## 2. Database
 ```
-npx prisma migrate deploy        # applies the 15 migrations; run with the production DATABASE_URL
+npx prisma migrate deploy        # applies the 16 migrations; run with the production DATABASE_URL
 ```
 Never run `migrate dev`, `migrate reset` or the seed against production.
 
@@ -55,5 +55,6 @@ Never run `migrate dev`, `migrate reset` or the seed against production.
   (`AIInteraction.promptTokens/outputTokens`), so a daily cost query is possible; nobody runs it.
 - **Log review** for personal data; **incident process**; **status page**.
 - **Shared rate limiting**: limits are per serverless instance. Put an edge or Redis-backed limiter in front before a large rollout.
-- **CSRF**: state-changing requests rely on `SameSite=Lax` cookies. There is no Origin/CSRF-token check (defence in depth recommended).
+- **CSRF**: `SameSite=Lax` cookies PLUS a front-door check (`src/proxy.ts`) that refuses browser-originated cross-site writes to `/api/*`
+  (tested over real HTTP). There is no per-form token; the cookie setting and this check are the protection.
 - **Load and performance tests**: none. Analytics are computed on every page view from raw rows.
