@@ -85,7 +85,7 @@ describe('AI API', () => {
       'fetch',
       vi.fn().mockResolvedValue(anthropicResponse(analysis)),
     );
-    const cookie = await registeredUser();
+    const cookie = await registeredUser('TEACHER');
     const response = await analyzeTranscript(
       new Request('http://localhost/api/ai/analyze-transcript', {
         method: 'POST',
@@ -104,7 +104,7 @@ describe('AI API', () => {
   it('rejects empty and overlong transcript input before calling AI', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    const cookie = await registeredUser();
+    const cookie = await registeredUser('TEACHER');
 
     const empty = await analyzeTranscript(
       new Request('http://localhost/api/ai/analyze-transcript', {
@@ -123,6 +123,24 @@ describe('AI API', () => {
 
     expect(empty.status).toBe(400);
     expect(long.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses transcript analysis to visitors and students without calling the AI (no open AI proxy)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const studentCookie = await registeredUser();
+    const send = (cookie?: string) =>
+      analyzeTranscript(
+        new Request('http://localhost/api/ai/analyze-transcript', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+          body: JSON.stringify({ sourceTitle: 'Plants', transcript }),
+        }),
+      );
+
+    expect((await send()).status).toBe(401);
+    expect((await send(studentCookie)).status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -231,7 +249,7 @@ describe('AI API', () => {
       .mockResolvedValueOnce(anthropicResponse(null, 503)) // the one automatic retry
       .mockRejectedValueOnce(new DOMException('Timed out', 'AbortError'));
     vi.stubGlobal('fetch', fetchMock);
-    const cookie = await registeredUser();
+    const cookie = await registeredUser('TEACHER');
     const request = () =>
       analyzeTranscript(
         new Request('http://localhost/api/ai/analyze-transcript', {
@@ -284,7 +302,7 @@ describe('AI API', () => {
         .fn()
         .mockImplementation(() => Promise.resolve(anthropicResponse(analysis))),
     );
-    const cookie = await registeredUser();
+    const cookie = await registeredUser('TEACHER');
     const makeRequest = () =>
       analyzeTranscript(
         new Request('http://localhost/api/ai/analyze-transcript', {

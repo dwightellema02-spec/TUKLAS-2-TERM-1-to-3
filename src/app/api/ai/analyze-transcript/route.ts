@@ -23,9 +23,13 @@ export async function POST(request: Request) {
 
   const user = await db.user.findUnique({
     where: { id: session.sub },
-    select: { id: true },
+    select: { id: true, role: true },
   });
   if (!user) return jsonError('Authentication required.', 401);
+  // Teacher tooling only: a student must not be able to use this as a general AI endpoint (up to 100,000 characters of input).
+  if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
+    return jsonError('Only teachers can analyze transcripts.', 403);
+  }
 
   try {
     const parsed = inputSchema.safeParse(await request.json());
