@@ -28,7 +28,8 @@ A student can type something personal into the tutor box and it will be stored a
 says "Please do not type personal details", but nothing detects or removes personal details a student types anyway.
 
 ## Gaps (what must be decided or built before real use)
-1. **No consent flow, privacy notice or parent/guardian consent** in the product.
+1. **No consent flow or parent/guardian consent capture** in the product. A draft privacy notice and consent form (English and
+   Filipino) exists as a document: `DRAFT_PRIVACY_NOTICE_AND_CONSENT.md`. It is not legally reviewed and is not yet shown in the app.
 2. **No retention policy**: conversations and learning records are kept indefinitely. BUILT since the first version of this file:
    a student can **download all their data** and **delete their own account** (password plus the word DELETE; everything cascades,
    tested) on `/student/privacy`. Not built: teacher and administrator self-deletion (an administrator closes those), a
