@@ -18,7 +18,7 @@ describe('the production content loader', () => {
       const before = await count();
       const first = await loadTerm1Curriculum(prisma, author.id);
       const second = await loadTerm1Curriculum(prisma, author.id);
-      expect(first).toEqual({ units: 3, lessons: 5, practiceQuestions: 144 });
+      expect(first).toEqual({ units: 4, lessons: 11, practiceQuestions: 360 });
       expect(second).toEqual(first);
       expect(await count()).toEqual(before);
     } finally {

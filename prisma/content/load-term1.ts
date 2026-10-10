@@ -8,6 +8,7 @@
 
 import type { PrismaClient } from '@prisma/client';
 import { buildTerm1Lessons, TERM1_SOURCE, TERM1_UNITS } from './term1-lessons';
+import { buildTerm1WeeklyLessons, WEEKLY_UNIT } from './term1-weekly';
 
 export type LoadSummary = { units: number; lessons: number; practiceQuestions: number };
 
@@ -29,7 +30,8 @@ export async function loadTerm1Curriculum(prisma: PrismaClient, authorId: string
     create: { curriculumId: curriculum.id, number: 1, title: 'Term 1' },
   });
 
-  for (const unit of Object.values(TERM1_UNITS)) {
+  const allUnits = [...Object.values(TERM1_UNITS), WEEKLY_UNIT];
+  for (const unit of allUnits) {
     await prisma.unit.upsert({
       where: { id: unit.id },
       update: { position: unit.position, title: unit.title, description: unit.description },
@@ -38,12 +40,13 @@ export async function loadTerm1Curriculum(prisma: PrismaClient, authorId: string
   }
 
   let practiceQuestions = 0;
-  const lessons = buildTerm1Lessons();
+  const lessons = [...buildTerm1Lessons(), ...buildTerm1WeeklyLessons()];
   for (const lesson of lessons) {
+    const unitId = lesson.unit === 'weekly' ? WEEKLY_UNIT.id : TERM1_UNITS[lesson.unit].id;
     const record = await prisma.lesson.upsert({
       where: { id: lesson.id },
       update: {
-        unitId: TERM1_UNITS[lesson.unit].id,
+        unitId,
         title: lesson.title,
         description: lesson.description,
         estimatedMinutes: lesson.estimatedMinutes,
@@ -54,7 +57,7 @@ export async function loadTerm1Curriculum(prisma: PrismaClient, authorId: string
       create: {
         id: lesson.id,
         authorId,
-        unitId: TERM1_UNITS[lesson.unit].id,
+        unitId,
         title: lesson.title,
         description: lesson.description,
         subject: mathSubject.name,
@@ -155,5 +158,5 @@ export async function loadTerm1Curriculum(prisma: PrismaClient, authorId: string
     }
   }
 
-  return { units: Object.keys(TERM1_UNITS).length, lessons: lessons.length, practiceQuestions };
+  return { units: allUnits.length, lessons: lessons.length, practiceQuestions };
 }

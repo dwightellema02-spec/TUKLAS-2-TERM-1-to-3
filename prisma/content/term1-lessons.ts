@@ -78,7 +78,7 @@ export type Term1Lesson = {
 };
 
 /** Knowledge check with the right answer in a rotated slot. */
-function check(
+export function check(
   slot: number,
   question: string,
   answer: string,

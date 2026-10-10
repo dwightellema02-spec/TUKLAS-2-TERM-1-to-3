@@ -5,6 +5,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { buildTerm1Lessons, TERM1_SOURCE } from '../prisma/content/term1-lessons';
+import { buildTerm1WeeklyLessons } from '../prisma/content/term1-weekly';
 
 const letters = ['A', 'B', 'C', 'D'];
 const out: string[] = [];
@@ -18,11 +19,13 @@ out.push('## How to review', '');
 out.push('1. Read each lesson. Mark anything wrong, unclear, too hard or too easy. Suggest Filipino-friendly examples (pesos, local places).');
 out.push('2. For each question check: the marked answer (★) is right; the other three choices are plausible mistakes; the explanation is clear.');
 out.push('3. Tick the box and sign the lesson at its end. Return this document to the developer, or make the edits yourself in the Lesson Studio.', '');
-out.push('Not covered yet (so you can say what is missing): drawing polygons with a ruler and protractor; graded practice for the financial plan;');
+out.push('The packet has two sets of lessons: the first five (topic lessons) and the six "Week 1 to Week 6" lessons, one per Budget of Work week.');
+out.push('The weekly lessons are written in our own words from the competencies, not copied from the DepEd Lesson Exemplars (see docs/DEPED_EXEMPLAR_ERRATA.md).', '');
+out.push('Not covered yet (so you can say what is missing): hands-on drawing with a ruler and protractor (taught step by step, but only the angle arithmetic is practised in the app); graded practice for the financial plan (the budget arithmetic is practised);');
 out.push('operations on fractions (practice is decimals only); ordering rational numbers on a number line (taught, not practised).', '');
 
 let total = 0;
-for (const lesson of buildTerm1Lessons()) {
+for (const lesson of [...buildTerm1Lessons(), ...buildTerm1WeeklyLessons()]) {
   out.push('---', '', `## ${lesson.title}`, '');
   out.push(`${lesson.description} (about ${lesson.estimatedMinutes} minutes)`, '');
   out.push(`**Competency:** ${lesson.competency.title}`, '');

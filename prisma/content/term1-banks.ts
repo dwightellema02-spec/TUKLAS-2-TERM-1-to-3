@@ -27,19 +27,19 @@ export type BankQuestion = {
 const DIFFICULTY_CYCLE: Difficulty[] = ['EASY', 'MEDIUM', 'HARD'];
 
 /** Rounded so float noise never reaches a student (answers here have at most 3 decimals). */
-const clean = (n: number) => Math.round(n * 1e6) / 1e6;
+export const clean = (n: number) => Math.round(n * 1e6) / 1e6;
 
 /** Text form of a number: true minus sign, no trailing zeros. */
 export const num = (n: number) => {
   const value = clean(n);
   return value < 0 ? `−${Math.abs(value)}` : String(value);
 };
-const show = (n: number) => (n < 0 ? `(${num(n)})` : num(n));
-const deg = (n: number) => `${num(n)}°`;
-const peso = (n: number) => `₱${num(n)}`;
-const pct = (n: number) => `${num(n)}%`;
+export const show = (n: number) => (n < 0 ? `(${num(n)})` : num(n));
+export const deg = (n: number) => `${num(n)}°`;
+export const peso = (n: number) => `₱${num(n)}`;
+export const pct = (n: number) => `${num(n)}%`;
 
-type Item = {
+export type Item = {
   question: string;
   answer: string;
   /** Candidate wrong options, most plausible first. */
@@ -50,7 +50,7 @@ type Item = {
 
 type Maker = (index: number) => Item;
 
-function textsFrom(values: number[], fmt: (n: number) => string, answer: number): string[] {
+export function textsFrom(values: number[], fmt: (n: number) => string, answer: number): string[] {
   return values.filter((v) => Number.isFinite(v) && clean(v) !== clean(answer)).map(fmt);
 }
 
@@ -78,12 +78,12 @@ function finish(skill: SkillDef, index: number, item: Item, tag: string): Omit<B
   };
 }
 
-function buildSkill(skill: SkillDef, tag: string, count: number, make: Maker) {
+export function buildSkill(skill: SkillDef, tag: string, count: number, make: Maker) {
   return Array.from({ length: count }, (_, index) => finish(skill, index, make(index), tag));
 }
 
 /** Round-robin the skills so every prefix is a mixed set; positions start at 100. */
-function interleave(banks: Array<Array<Omit<BankQuestion, 'position'>>>): BankQuestion[] {
+export function interleave(banks: Array<Array<Omit<BankQuestion, 'position'>>>): BankQuestion[] {
   const out: BankQuestion[] = [];
   const rounds = Math.max(...banks.map((bank) => bank.length));
   for (let round = 0; round < rounds; round += 1) {
