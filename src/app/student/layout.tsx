@@ -1,9 +1,14 @@
 import { ReactNode } from 'react';
 import { requireServerUser } from '../../lib/auth/server-guard';
+import { AppShell } from '../../components/app-shell';
 
 export default async function StudentLayout({ children }: { children: ReactNode }) {
   // Enforce server-side role check: only STUDENT
-  await requireServerUser(['STUDENT']);
+  const user = await requireServerUser(['STUDENT']);
 
-  return <>{children}</>;
+  return (
+    <AppShell role="STUDENT" name={user.displayName}>
+      {children}
+    </AppShell>
+  );
 }

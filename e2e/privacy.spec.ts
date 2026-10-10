@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { expectNoHorizontalScroll, snap } from './helpers';
+import { expectNoHorizontalScroll, openNav, snap } from './helpers';
 
 test.describe.configure({ mode: 'serial' });
 
@@ -55,6 +55,7 @@ test('the tutor tells the student not to type personal details, and a bad reply 
 
 test('the student can see what is kept, download it, and the file is theirs only', async ({}, testInfo) => {
   await page.goto('/student');
+  await openNav(page);
   await page.getByRole('link', { name: 'My data' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('My data');
   await expect(page.getByRole('region', { name: 'What Tuklas keeps' })).toContainText('Your name and email are not sent');

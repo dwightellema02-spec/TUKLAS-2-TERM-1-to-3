@@ -1,0 +1,588 @@
+/* The public landing page (.lp) and the sign-in / create-account screen (.au), in the prototype's look. */
+
+.lp,
+.au-page {
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+}
+
+.lp h1,
+.lp h2,
+.lp h3,
+.au-page h1,
+.au-page h2 {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+
+.lp {
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+.lp-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px clamp(16px, 4vw, 40px);
+}
+
+.lp-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--deep);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.lp-brand-mark {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--deep);
+  position: relative;
+}
+
+.lp-brand-mark::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.lp-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+}
+
+.lp-nav a {
+  color: var(--ink);
+  font-size: 0.94rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.lp-nav a:hover {
+  text-decoration: underline;
+}
+
+.lp-actions,
+.lp-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 22px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lp-btn.dark {
+  background: var(--deep);
+  color: #ffffff;
+}
+
+.lp-btn.dark:hover {
+  background: var(--deep-2);
+}
+
+.lp-btn.amber {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.lp-btn.amber:hover {
+  background: #f0b155;
+}
+
+.lp-btn.ghost {
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--deep);
+}
+
+.lp-btn.ghost:hover {
+  background: #e9eee5;
+}
+
+.lp-btn.small {
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+}
+
+.lp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: center;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 40px) clamp(40px, 7vw, 84px);
+}
+
+.lp-hero h1 {
+  max-width: 11ch;
+  margin: 0 0 22px;
+  color: var(--deep);
+  font-size: clamp(2.5rem, 6vw, 4.6rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.lp-hero-copy p {
+  max-width: 34rem;
+  margin: 0 0 26px;
+  color: var(--ink-soft);
+  font-size: 1.12rem;
+  line-height: 1.65;
+}
+
+.lp-hero-copy .lp-signin {
+  margin: 18px 0 0;
+  font-size: 0.95rem;
+}
+
+.lp-loop-card {
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: var(--radius-l);
+  background: radial-gradient(120% 90% at 85% 0%, #2f4a37 0%, var(--deep) 55%);
+  color: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.lp-loop-title {
+  margin: 0 0 18px;
+  color: #bcd0c6;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.lp-loop-card ol {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-loop-card li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-weight: 700;
+}
+
+.lp-loop-card li span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+}
+
+.lp-loop-card li.on span {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.lp-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(32px, 6vw, 72px) clamp(16px, 4vw, 40px);
+}
+
+.lp-kicker {
+  margin: 0 0 8px;
+  color: var(--leaf-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lp-section h2 {
+  max-width: 22ch;
+  margin: 0 0 14px;
+  color: var(--deep);
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.lp-lede {
+  max-width: 42rem;
+  margin: 0 0 32px;
+  color: var(--ink-soft);
+  font-size: 1.05rem;
+}
+
+.lp-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.lp-step {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--panel);
+}
+
+.lp-step h3 {
+  margin: 0 0 8px;
+  color: var(--deep);
+  font-size: 1.02rem;
+}
+
+.lp-step p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.lp-audience {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 4vw, 40px);
+}
+
+.lp-aud {
+  padding: clamp(22px, 3vw, 34px);
+  border-radius: var(--radius-l);
+}
+
+.lp-aud.students {
+  background: #e6eee8;
+}
+
+.lp-aud.teachers {
+  background: #f0e8dc;
+}
+
+.lp-aud h2 {
+  margin: 0 0 6px;
+  color: var(--deep);
+  font-size: 1.6rem;
+}
+
+.lp-aud-sub {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.lp-aud ul {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-aud li {
+  position: relative;
+  padding-left: 22px;
+  color: var(--ink);
+}
+
+.lp-aud li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--ink-soft);
+}
+
+.lp-faq {
+  border-top: 1px solid var(--line-strong);
+}
+
+.lp-faq details {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.lp-faq summary {
+  color: var(--deep);
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.lp-faq p {
+  max-width: 48rem;
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+}
+
+.lp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-top: 40px;
+  padding: 28px clamp(16px, 4vw, 40px);
+  background: var(--deep);
+  color: #d4e2da;
+  font-size: 0.88rem;
+}
+
+.lp-foot p {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ sign in / create account */
+
+.au-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  min-height: 100vh;
+  background: var(--canvas);
+}
+
+.au-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 64px);
+  background: radial-gradient(120% 90% at 85% 0%, #2f4a37 0%, var(--deep) 58%);
+  color: #ffffff;
+}
+
+.au-brand {
+  align-self: flex-start;
+  margin-bottom: clamp(28px, 8vh, 80px);
+  color: #ffffff;
+}
+
+.au-brand .lp-brand-mark {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.au-eyebrow {
+  margin: 0 0 12px;
+  color: #bcd0c6;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.au-hero h1 {
+  max-width: 14ch;
+  margin: 0 0 16px;
+  color: #ffffff;
+  font-size: clamp(2.1rem, 4.6vw, 3.6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.au-lede {
+  max-width: 28rem;
+  margin: 0 0 28px;
+  color: #d4e2da;
+  font-size: 1.05rem;
+}
+
+.au-loop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.au-loop li {
+  counter-increment: step;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: #eaf2ed;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.au-loop li::before {
+  content: counter(step) '  ';
+  color: #f3c571;
+}
+
+.au-side {
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 4vw, 48px);
+}
+
+.au-card {
+  width: 100%;
+  max-width: 440px;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.au-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 22px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #e9eee5;
+}
+
+.au-tabs a {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.au-tabs a.active {
+  background: var(--panel);
+  color: var(--deep);
+  box-shadow: 0 1px 3px rgba(14, 59, 52, 0.18);
+}
+
+.au-title {
+  margin: 0 0 4px;
+  color: var(--deep);
+  font-size: 1.55rem;
+  letter-spacing: -0.015em;
+}
+
+.au-note {
+  margin: 0 0 18px;
+  color: var(--ink-soft);
+}
+
+.au-form {
+  display: grid;
+  gap: 16px;
+}
+
+.au-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.au-form input,
+.au-form select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: #ffffff;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.au-hint {
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.au-error {
+  margin: 0;
+  padding: 11px 13px;
+  border: 1px solid #f0b9a6;
+  border-radius: var(--radius-s);
+  background: var(--brick-soft);
+  color: #7a2a0f;
+  font-size: 0.9rem;
+}
+
+.au-submit {
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--deep);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.au-submit:hover {
+  background: var(--deep-2);
+}
+
+.au-submit[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.au-foot {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .lp-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lp-nav {
+    display: none;
+  }
+
+  .au-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .au-hero {
+    padding: 24px 20px 28px;
+  }
+
+  .au-brand {
+    margin-bottom: 20px;
+  }
+}

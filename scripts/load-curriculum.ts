@@ -11,6 +11,8 @@
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { loadTerm1Curriculum } from '../prisma/content/load-term1';
+import { buildTerm1Lessons, TERM1_UNITS } from '../prisma/content/term1-lessons';
+import { buildTerm1WeeklyLessons } from '../prisma/content/term1-weekly';
 
 dotenv.config({ path: '.env.local' });
 
@@ -30,7 +32,9 @@ async function main() {
     }
     const host = new URL(process.env.DATABASE_URL).host; // the host only: never the user, password or database name
     console.log(`Target database host: ${host}`);
-    console.log('This will create or update 3 units, 5 Grade 7 Term 1 lessons and 144 practice questions, published, owned by that account.');
+    const planned = [...buildTerm1Lessons(), ...buildTerm1WeeklyLessons()];
+    const plannedQuestions = planned.reduce((sum, lesson) => sum + lesson.bank.length, 0);
+    console.log(`This will create or update ${Object.keys(TERM1_UNITS).length + 1} units, ${planned.length} Grade 7 Term 1 lessons and ${plannedQuestions} practice questions, published, owned by that account.`);
     if (!flag('confirm')) {
       console.log('Dry run: nothing was changed. Add --confirm to load the content.');
       return;

@@ -100,13 +100,13 @@ test('the new teacher signs in and creates a class with a join code', async ({},
 });
 
 test('a student registers, then joins the class with the code', async ({}, testInfo) => {
-  await student.goto('/');
-  await student.getByRole('button', { name: 'Create account' }).first().click();
+  await student.goto('/login?mode=register');
   await student.getByLabel('Display name').fill(`Student ${tag}`);
   await student.getByLabel('Email').fill(studentEmail);
   await student.getByLabel('Password').fill(STUDENT_PASSWORD);
   await student.locator('form').getByRole('button', { name: 'Create account' }).click();
-  await expect(student.getByText(`Student ${tag}`).first()).toBeVisible();
+  // Registering signs the student in and lands on their workspace, whose greeting names them.
+  await expect(student.getByRole('heading', { level: 1 })).toContainText(`Student ${tag}`);
 
   await student.goto('/student');
   await expect(student.getByText('You are not in a class yet')).toBeVisible();

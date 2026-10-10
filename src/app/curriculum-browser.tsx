@@ -31,13 +31,13 @@ type Curriculum = {
 };
 type Subject = { id: string; code: string; name: string; curricula: Curriculum[] };
 
-export default function CurriculumBrowser() {
+export default function CurriculumBrowser({ initialQuery = '', canAuthor = false }: { initialQuery?: string; canAuthor?: boolean } = {}) {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectId, setSubjectId] = useState('');
   const [curriculumId, setCurriculumId] = useState('');
   const [termId, setTermId] = useState('');
   const [unitId, setUnitId] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -55,7 +55,9 @@ export default function CurriculumBrowser() {
           const available = payload.data?.subjects as Subject[];
           setSubjects(available ?? []);
           if (available && available.length > 0 && !subjectId) {
-            setSubjectId(available[0].id);
+            // Open on a subject that actually has lessons rather than the first one alphabetically.
+            const withLessons = available.find((entry) => entry.curricula.some((c) => c.terms.some((t) => t.units.some((u) => u.lessons.length > 0))));
+            setSubjectId((withLessons ?? available[0]).id);
           }
         }
       })
@@ -99,12 +101,14 @@ export default function CurriculumBrowser() {
   const unit = units.find((entry) => entry.id === activeUnitId);
   const allLessons = unit?.lessons ?? [];
 
-  const filteredLessons = searchQuery.trim()
-    ? allLessons.filter(
-        (lesson) =>
-          lesson.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          lesson.description?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+  // A search looks through the whole term, not only the unit that happens to be selected.
+  const query = searchQuery.trim().toLowerCase();
+  const termLessons = units.flatMap((entry) => entry.lessons.map((lesson) => ({ lesson, unitTitle: entry.title })));
+  const unitTitleByLesson = new Map(termLessons.map(({ lesson, unitTitle }) => [lesson.id, unitTitle]));
+  const filteredLessons = query
+    ? termLessons
+        .map(({ lesson }) => lesson)
+        .filter((lesson) => lesson.title.toLowerCase().includes(query) || lesson.description?.toLowerCase().includes(query))
     : allLessons;
 
   if (loading) {
@@ -153,7 +157,7 @@ export default function CurriculumBrowser() {
       <div className="section-heading" style={{ marginBottom: '16px' }}>
         <h2 id="curriculum-heading">Explore curriculum</h2>
         <p style={{ color: '#556', margin: '4px 0 0 0' }}>
-          Database-authoritative Philippine K-12 learning hierarchy
+          Choose a subject, term and unit, or search the whole term by topic.
         </p>
       </div>
 
@@ -258,7 +262,7 @@ export default function CurriculumBrowser() {
             </p>
           )}
 
-          {unit && (
+          {unit && canAuthor && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
               <Link
                 href={`/teacher/lessons/new?unitId=${unit.id}`}
@@ -283,7 +287,7 @@ export default function CurriculumBrowser() {
           ) : filteredLessons.length === 0 ? (
             <p className="empty-state">
               {searchQuery
-                ? `No lessons matching "${searchQuery}" in this unit.`
+                ? `No lessons matching "${searchQuery}" in this term.`
                 : 'No lessons are available in this unit yet.'}
             </p>
           ) : (
@@ -293,6 +297,7 @@ export default function CurriculumBrowser() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <p className="lesson-subject" style={{ margin: 0 }}>
                       {lesson.subject} · {lesson.gradeLevel}
+                      {query && unitTitleByLesson.get(lesson.id) ? ` · ${unitTitleByLesson.get(lesson.id)}` : ''}
                     </p>
                     {lesson.status !== 'PUBLISHED' && (
                       <span
@@ -324,6 +329,7 @@ export default function CurriculumBrowser() {
                     <Link href={`/lessons/${lesson.id}`} style={{ flex: 1, textAlign: 'center' }}>
                       Open lesson
                     </Link>
+                    {canAuthor && (
                     <Link
                       href={`/teacher/lessons/${lesson.id}/studio`}
                       style={{
@@ -341,6 +347,7 @@ export default function CurriculumBrowser() {
                     >
                       Studio
                     </Link>
+                    )}
                   </div>
                 </article>
               ))}

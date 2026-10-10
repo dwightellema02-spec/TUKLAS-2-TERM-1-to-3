@@ -19,6 +19,12 @@ export async function signIn(page: Page, email: string, password = PASSWORD) {
   await page.waitForURL((url) => !url.pathname.startsWith('/login'));
 }
 
+/** On a phone the sidebar sits behind a Menu button; open it so its links can be clicked. */
+export async function openNav(page: Page) {
+  const menu = page.getByRole('button', { name: 'Menu', exact: true });
+  if (await menu.isVisible()) await menu.click();
+}
+
 export async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
